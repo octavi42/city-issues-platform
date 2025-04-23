@@ -1,4 +1,14 @@
-from db.neo4j import get_session
+#!/usr/bin/env python3
+"""
+CLI tool to create Neo4j nodes via db.crud.
+
+Usage:
+  create_nodes.py <node_type> <properties_json_or_file>
+"""
+import argparse
+import json
+import sys
+import db.crud as crud
 
 def add_node(label: str, id_prop: str, props: dict) -> dict:
     """
@@ -28,7 +38,7 @@ def add_node(label: str, id_prop: str, props: dict) -> dict:
         query.append("SET " + ", ".join(set_clauses))
     query.append("RETURN n")
     query_str = "\n".join(query)
-    session = get_session()
+    session = crud.get_session()
     with session as s:
         result = s.run(query_str, **parameters)
         record = result.single()
@@ -57,3 +67,50 @@ def add_solution(props: dict) -> dict:
 
 def add_user(props: dict) -> dict:
     return add_node("User", "user_id", props)
+
+_FUNCTIONS = {
+    'city': add_city,
+    'user': add_user,
+    'photo': add_photo,
+    'analyzer': add_analyzer,
+    'category': add_category,
+    'department': add_department,
+    'solution': add_solution,
+    'event': add_detection_event,
+}
+
+def load_props(arg: str) -> dict:
+    """
+    Load JSON properties from a string or file path.
+    """
+    try:
+        return json.loads(arg)
+    except json.JSONDecodeError:
+        try:
+            with open(arg, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading properties: {e}", file=sys.stderr)
+            sys.exit(1)
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Create a Neo4j node of the given type.'
+    )
+    parser.add_argument(
+        'node_type', choices=_FUNCTIONS.keys(),
+        help='Type of node to create'
+    )
+    parser.add_argument(
+        'props',
+        help='JSON string or path to JSON file with node properties'
+    )
+    args = parser.parse_args()
+
+    props = load_props(args.props)
+    creator = _FUNCTIONS[args.node_type]
+    node = creator(props)
+    print(node)
+
+if __name__ == '__main__':
+    main()

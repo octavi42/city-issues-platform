@@ -1,7 +1,11 @@
-# apps/api/app/db/schema.py
+"""
+Cypher statements to create constraints and indexes in Neo4j.
+
+Safe to run multiple times (uses IF NOT EXISTS).
+"""
 from neo4j import AsyncGraphDatabase
 
-# Cypher statements to create constraints and indexes
+# Constraint and index creation queries
 _SCHEMA_QUERIES = [
     # 1. Uniqueness constraints
     """
@@ -37,7 +41,7 @@ _SCHEMA_QUERIES = [
       FOR (u:User) REQUIRE u.user_id IS UNIQUE;
     """,
 
-    # 2. Property‑existence constraint
+    # 2. Property-existence constraint
     """
     CREATE CONSTRAINT event_reported_at IF NOT EXISTS
       FOR (e:DetectionEvent) REQUIRE e.reported_at IS NOT NULL;
@@ -54,10 +58,13 @@ _SCHEMA_QUERIES = [
     """,
 ]
 
-async def init_db_schema(uri: str, user: str, password: str):
+async def init_db_schema(uri: str, user: str, password: str) -> None:
     """
     Create all constraints and indexes in Neo4j.
-    Safe to run multiple times (uses IF NOT EXISTS).
+
+    :param uri:       URI for Neo4j connection (e.g., bolt://localhost:7687)
+    :param user:      Username for authentication
+    :param password:  Password for authentication
     """
     driver = AsyncGraphDatabase.driver(uri, auth=(user, password))
     async with driver:
