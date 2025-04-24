@@ -5,8 +5,13 @@ import json
 from pathlib import Path
 import sys
 import os
+"""
+Defines OpenAI function-calling specifications using JSON schemas.
+"""
+import json
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from db.crud.read_nodes import read_nodes
 
@@ -15,43 +20,88 @@ _SCHEMA_DIR = Path(__file__).parents[1] / "schemas"
 
 def issue() -> dict:
     """
-    Specification for reporting a new issue via OpenAI function call.
+    Return function-calling spec to report a new issue.
     """
-    category_nodes = read_nodes("Category")
-
-    enum_values = [n["name"] for n in category_nodes] # if n.get("event_type") == "issue"
-
+    nodes = read_nodes("Category")
     schema_path = _SCHEMA_DIR / "issue.json"
     schema = json.loads(schema_path.read_text())
-    schema["properties"]["category"]["enum"][:] = enum_values
-
+    # Restrict category enum to 'issue' event type
+    if "properties" in schema and "category" in schema["properties"]:
+        schema["properties"]["category"]["enum"] = [
+            n.get("name") for n in nodes if n.get("event_type") == "issue"
+        ]
+    # Disallow unspecified properties
+    schema["additionalProperties"] = False
     return {
-        "name": "issue",
-        "description": "Report a new issue detected in the environment.",
+        "name": "report_issue",
+        "description": schema.get(
+            "description", "Report a new issue detected in the environment."
+        ),
         "parameters": schema,
     }
 
 def maintained() -> dict:
     """
-    Specification for marking an issue as maintained via function call.
+    Return function-calling spec to log a well-maintained element.
     """
-    # Populate category enum values as in issue()
-    category_nodes = read_nodes("Category")
-    enum_values = [n.get("name") for n in category_nodes]
-
+    nodes = read_nodes("Category")
     schema_path = _SCHEMA_DIR / "maintained.json"
     spec = json.loads(schema_path.read_text())
-    # Extract parameters schema
-    parameters = spec.get("parameters", spec)
-    # Update category enum if present
-    props = parameters.get("properties", {})
-    if "category" in props and "enum" in props["category"]:
-        props["category"]["enum"] = enum_values
-
+    # Extract parameters object
+    params = spec.get("parameters", {})
+    if "properties" in params and "category" in params["properties"]:
+        params["properties"]["category"]["enum"] = [
+            n.get("name") for n in nodes if n.get("event_type") == "maintenance"
+        ]
+    # Disallow unspecified properties
+    params["additionalProperties"] = False
     return {
-        "name": "maintained",
+        "name": spec.get("name", "log_well_maintained"),
         "description": spec.get(
-            "description", "Mark an existing issue as maintained via function call."
+            "description", "Record a WELL-MAINTAINED element for QA metrics"
         ),
-        "parameters": parameters,
+        "parameters": params,
     }
+
+
+
+# def issue() -> dict:
+#     """
+#     Specification for reporting a new issue via OpenAI function call.
+#     """
+#     category_nodes = read_nodes("Category")
+
+#     enum_values = [n["name"] for n in category_nodes] # if n.get("event_type") == "issue"
+
+#     schema_path = _SCHEMA_DIR / "issue.json"
+#     schema = json.loads(schema_path.read_text())
+#     schema["properties"]["category"]["enum"][:] = enum_values
+
+#     return {
+#         "name": "issue",
+#         "description": "Report a new issue detected in the environment.",
+#         "parameters": schema,
+#     }
+
+# def maintained() -> dict:
+#     """
+#     Specification for marking an issue as maintained via function call.
+#     """
+#     # Populate category enum values as in issue()
+#     category_nodes = read_nodes("Category")
+#     enum_values = [n.get("name") for n in category_nodes]
+
+#     schema_path = _SCHEMA_DIR / "maintained.json"
+#     spec = json.loads(schema_path.read_text())
+#     # Extract parameters schema
+#     parameters = spec.get("parameters", spec)
+#     # Update category enum if present
+#     props = parameters.get("properties", {})
+#     if "category" in props and "enum" in props["category"]:
+#         props["category"]["enum"] = enum_values
+
+#     return {
+#         "name": "maintained",
+#         "description": "Mark an existing issue as maintained via function call.",
+#         "parameters": parameters,
+#     }
