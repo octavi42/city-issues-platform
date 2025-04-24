@@ -1,0 +1,53 @@
+{
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "inspected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "category": {
+      "type": "string",
+      "enum": []
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "med",
+        "high"
+      ]
+    },
+    "severity_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "reported_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "closed"
+      ]
+    }
+  },
+  "required": [
+    "event_id",
+    "description",
+    "inspected_at",
+    "category",
+    "severity",
+    "severity_score",
+    "reported_at",
+    "status"
+  ]
+}

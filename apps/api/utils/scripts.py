@@ -6,12 +6,16 @@ Run once to demo creating nodes & relationships in Neo4j
 """
 import os
 import sys
+import json
 # Ensure project root is on PYTHONPATH so that 'utils' and 'db' packages can be imported when run as a script
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from db.crud.create_nodes import add_city, add_user, add_photo, add_detection_event
 from db.crud.create_edges import add_relationship
+from db.crud.read_nodes import read_nodes
 from db.neo4j import get_session
+
+from ai.openai.function_calls import issue, maintained
 
 def main():
     city_props = {
@@ -85,5 +89,26 @@ def main():
     print("Done!  Now open Neo4j Browser or `cypher-shell` and run:")
     print("  MATCH (n) RETURN n LIMIT 25;")
 
+
+def read():
+    nodes = read_nodes("Category")
+    print(nodes)
+    print()
+    for node in nodes:
+        print(node)
+        print(node["<id>"])
+        print(node["event_type"])
+        print(node["category_id"])
+        print(node["name"])
+        print(node["description"])
+        print()
+
+def read_fc():
+    print(json.dumps(issue(), indent=2))
+    print()
+    print(json.dumps(maintained(), indent=2))
+
 if __name__ == "__main__":
-    main()
+    # main()
+    # read()
+    read_fc()
