@@ -2,22 +2,26 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "event_id":           { "type": "string" },
+    "photo_id":           { "type": "string" },
+    "name":               { "type": "string" },
     "description":        { "type": "string" },
     "inspected_at":       { "type": "string" },
-    "category":           { "type": "string", "enum": [] },
-    "suggested_category": { "type": "string", "description": "Suggested new category if the issue doesn't fit existing categories" },
+    "category":           { "type": "string", "enum": [], "description": "Category of the issue, if it does not fit in any category suggest a new category, categoies should be very general" },
+
+    "category_description": { "type": "string", "description": "Description of the category if a new category is suggested" },
     "severity":           { "type": "string", "enum": ["low", "med", "high"] },
-    "severity_score":     { "type": "number" },
+    "severity_score":     { "type": "number", "description": "Severity score from 0 to 10" },
     "reported_at":        { "type": "string" },
     "status":             { "type": "string", "enum": ["open", "closed"] }
   },
   "required": [
-    "event_id",
+    "name",
+    "photo_id",
     "description",
     "inspected_at",
     "category",
-    "suggested_category",
+
+    "category_description",
     "severity",
     "severity_score",
     "reported_at",

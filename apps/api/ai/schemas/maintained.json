@@ -6,7 +6,7 @@
     "description":        { "type": "string" },
     "inspected_at":       { "type": "string" },
     "category":           { "type": "string", "enum": [] },
-    "suggested_category": { "type": "string", "description": "Suggested new category if the element doesn't fit existing categories" },
+    "category_description": { "type": "string", "description": "Description of the category if a new category is suggested" },
     "status":             { "type": "string", "enum": ["good", "acceptable", "bad"] },
     "condition_score":    { "type": "number" }
   },
@@ -15,7 +15,7 @@
     "description",
     "inspected_at",
     "category",
-    "suggested_category",
+    "category_description",
     "status",
     "condition_score"
   ]
