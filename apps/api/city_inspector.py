@@ -2,9 +2,10 @@
 City vision inspector agent definition.
 """
 try:
-    from agents import Agent, ModelSettings, FunctionTool, Runner
+    from agents import Agent, ModelSettings
+    from agents.tool import FunctionTool
 except ImportError:
-    raise ImportError("agents library is required for Agent and ModelSettings")
+    raise ImportError("agents and agents.tool libraries are required for Agent, ModelSettings, and FunctionTool")
 import sys
 import os
 import json
@@ -22,8 +23,11 @@ def _load(name, etype):
     schema = json.loads((_SCHEMA_DIR/name).read_text())
     # Filter by event_type if needed
     filtered_nodes = [n for n in nodes if n.get("event_type") == etype] if etype else nodes
-    # Use a new list instead of modifying in place
-    schema["properties"]["category"]["enum"] = [n["name"] for n in filtered_nodes]
+    # Get all categories including "other" option
+    category_names = [n["name"] for n in filtered_nodes]
+    if "other" not in category_names:
+        category_names.append("other")
+    schema["properties"]["category"]["enum"] = category_names
     return schema
 
 async def run_function(function_name, function_args):
@@ -67,26 +71,3 @@ city_inspector = Agent(
     tools=[report_issue_tool, log_wm_tool],
 )
 
-
-for tool in city_inspector.tools:
-    if isinstance(tool, FunctionTool):
-        print(tool.name)
-        print(tool.description)
-        print(json.dumps(tool.params_json_schema, indent=2))
-        print()
-
-
-async def main():
-    msg = [
-        {"role": "user", "content": [
-            {"type": "input_text", "text": "Analyse this image."},
-            {"type": "input_image", "image_url": "https://nub.news/api/image/526263/article.png"}
-        ]}
-    ]
-    result = await Runner.run(city_inspector, input=msg)
-    print(result.final_output)
-
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())

@@ -2,26 +2,25 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "event_id":      { "type": "string" },
-    "description":   { "type": "string" },
-
-    "inspected_at":  {
-      "type": "string"
-    },
-
-    "category":      { "type": "string", "enum": [] },
-    "severity":      { "type": "string", "enum": ["low","med","high"] },
-    "severity_score":{ "type": "number" },
-
-    "reported_at":   {
-      "type": "string",
-      "description": "ISO-8601 timestamp"
-    },
-
-    "status":        { "type": "string", "enum": ["open","closed"] }
+    "event_id":           { "type": "string" },
+    "description":        { "type": "string" },
+    "inspected_at":       { "type": "string" },
+    "category":           { "type": "string", "enum": [] },
+    "suggested_category": { "type": "string", "description": "Suggested new category if the issue doesn't fit existing categories" },
+    "severity":           { "type": "string", "enum": ["low", "med", "high"] },
+    "severity_score":     { "type": "number" },
+    "reported_at":        { "type": "string" },
+    "status":             { "type": "string", "enum": ["open", "closed"] }
   },
   "required": [
-    "event_id","description","inspected_at","category",
-    "severity","severity_score","reported_at","status"
+    "event_id",
+    "description",
+    "inspected_at",
+    "category",
+    "suggested_category",
+    "severity",
+    "severity_score",
+    "reported_at",
+    "status"
   ]
 }

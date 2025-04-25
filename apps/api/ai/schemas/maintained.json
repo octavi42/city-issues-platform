@@ -2,36 +2,20 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "event_id": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string"
-    },
-    "inspected_at": {
-      "type": "string"
-    },
-    "category": {
-      "type": "string",
-      "enum": []
-    },
-    "status": {
-        "type": "string",
-        "enum": [
-            "good",
-            "acceptable",
-            "bad"
-        ]
-    },
-    "condition_score": {
-      "type": "number"
-    }
+    "event_id":           { "type": "string" },
+    "description":        { "type": "string" },
+    "inspected_at":       { "type": "string" },
+    "category":           { "type": "string", "enum": [] },
+    "suggested_category": { "type": "string", "description": "Suggested new category if the element doesn't fit existing categories" },
+    "status":             { "type": "string", "enum": ["good", "acceptable", "bad"] },
+    "condition_score":    { "type": "number" }
   },
   "required": [
     "event_id",
     "description",
     "inspected_at",
     "category",
+    "suggested_category",
     "status",
     "condition_score"
   ]

@@ -27,9 +27,11 @@ def issue() -> dict:
     schema = json.loads(schema_path.read_text())
     # Restrict category enum to 'issue' event type
     if "properties" in schema and "category" in schema["properties"]:
-        schema["properties"]["category"]["enum"] = [
-            n.get("name") for n in nodes if n.get("event_type") == "issue"
-        ]
+        category_names = [n.get("name") for n in nodes if n.get("event_type") == "issue"]
+        # Add "other" category for issues that don't fit existing categories
+        if "other" not in category_names:
+            category_names.append("other")
+        schema["properties"]["category"]["enum"] = category_names
     # Disallow unspecified properties
     schema["additionalProperties"] = False
     return {
@@ -50,9 +52,11 @@ def maintained() -> dict:
     # Extract parameters object
     params = spec.get("parameters", {})
     if "properties" in params and "category" in params["properties"]:
-        params["properties"]["category"]["enum"] = [
-            n.get("name") for n in nodes if n.get("event_type") == "maintenance"
-        ]
+        category_names = [n.get("name") for n in nodes if n.get("event_type") == "maintenance"]
+        # Add "other" category for well-maintained elements that don't fit existing categories
+        if "other" not in category_names:
+            category_names.append("other")
+        params["properties"]["category"]["enum"] = category_names
     # Disallow unspecified properties
     params["additionalProperties"] = False
     return {
