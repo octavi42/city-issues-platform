@@ -31,6 +31,27 @@ const styles = {
     borderRadius: "0.125rem",
     margin: "0.5rem auto 1.5rem",
   } as StyleObject,
+  // Sheet container wrapper
+  sheetWrapper: {
+    position: 'relative',
+    backgroundColor: 'white',
+    borderTopLeftRadius: '1.875rem',
+    borderTopRightRadius: '1.875rem',
+    boxShadow: '0 -5px 15px rgba(0,0,0,0.1)',
+    maxHeight: 'calc(100vh - 40px)',
+    overflowY: 'auto',
+    width: '100%',
+    maxWidth: '28rem',
+    margin: '0 auto'
+  } as StyleObject,
+  // Drag handle at top of sheet
+  dragHandle: {
+    width: '3rem',
+    height: '0.25rem',
+    backgroundColor: '#E0E0E0',
+    borderRadius: '0.125rem',
+    margin: '0.75rem auto'
+  } as StyleObject,
   issueImage: {
     width: "100%",
     borderRadius: "1.875rem",
@@ -141,6 +162,33 @@ const styles = {
   commentText: {
     fontSize: "1rem",
     lineHeight: "1.5"
+  } as StyleObject,
+  // Suggestions section styles
+  suggestionsSection: {
+    marginBottom: "2rem"
+  } as StyleObject,
+  suggestionsList: {
+    listStyleType: "disc",
+    paddingLeft: "1.5rem",
+    color: "#333",
+    fontSize: "1rem",
+    lineHeight: "1.5",
+    margin: 0
+  } as StyleObject,
+  suggestionItem: {
+    marginBottom: "0.5rem"
+  } as StyleObject,
+  addCommentButton: {
+    width: "100%",
+    backgroundColor: "#075CDD",
+    color: "white",
+    padding: "0.75rem",
+    fontSize: "1rem",
+    fontWeight: "600",
+    borderRadius: "1.25rem",
+    border: "none",
+    cursor: "pointer",
+    marginTop: "1.5rem"
   } as StyleObject
 };
 
@@ -214,7 +262,9 @@ const IssueDetail: React.FC<IssueDetailProps> = ({ issueId }) => {
   }
 
   return (
-    <div style={styles.content}>
+    <div style={styles.sheetWrapper}>
+      <div style={styles.dragHandle} />
+      <div style={styles.content}>
       {/* Drag handle indicator (optional, can be part of modal) */}
       <div style={styles.headerBar} />
 
@@ -233,6 +283,15 @@ const IssueDetail: React.FC<IssueDetailProps> = ({ issueId }) => {
       <div style={styles.metadata}>
         <span>{data.category}</span>
         <span>{data.date}</span>
+      </div>
+      {/* Suggestions section */}
+      <div style={styles.suggestionsSection}>
+        <h2 style={styles.infoHeading}>Suggestions</h2>
+        <ul style={styles.suggestionsList}>
+          <li style={styles.suggestionItem}>Ensure personal safety around the area</li>
+          <li style={styles.suggestionItem}>Report any updates to the assigned department</li>
+          <li style={styles.suggestionItem}>Include photos for documentation</li>
+        </ul>
       </div>
 
       {/* Severity indicator */}
@@ -285,6 +344,9 @@ const IssueDetail: React.FC<IssueDetailProps> = ({ issueId }) => {
           </div>
         ))}
         {data.comments.length === 0 && <p>No comments yet.</p>}
+        {/* Add comment button */}
+        <button style={styles.addCommentButton}>Add a Comment</button>
+      </div>
       </div>
     </div>
   );

@@ -1,13 +1,17 @@
 import { useCallback, useState, useEffect, useRef } from "react";
 import { Sheet, Scroll } from "@silk-hq/components";
-import "./ExampleSheetWithStacking.css";
+import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
+import { Avatar } from "../../../components/ui/avatar";
+import { MessageSquare, Calendar, MapPin, AlertTriangle, ChevronDown } from "lucide-react";
+
 import {
   SheetWithStackingStack,
   SheetWithStackingRoot,
   SheetWithStackingView,
 } from "./SheetWithStacking";
 
-import { SheetTriggerCard } from "@/components/app/SheetTriggerCard/SheetTriggerCard";
+import { SheetTriggerCard } from "../../app/SheetTriggerCard/SheetTriggerCard";
 
 interface ExampleSheetWithStackingProps {
   data: any;
@@ -16,7 +20,6 @@ interface ExampleSheetWithStackingProps {
 }
 
 const ExampleSheetWithStackingView = ({ data }: any) => {
-  const [scrolled, setScrolled] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const mountedRef = useRef(false);
   
@@ -37,255 +40,182 @@ const ExampleSheetWithStackingView = ({ data }: any) => {
     if (travelStatus === "idleOutside")
       setTimeout(() => {
         if (mountedRef.current) {
-          setScrolled(false);
+          // Handle idle state
         }
       }, 10);
   }, [isReady]);
 
   const handleScroll = useCallback(({ distance }: { distance: number }) => {
     if (!isReady) return;
-    setScrolled(distance > 0);
+    // Handle scroll
   }, [isReady]);
+
+  // Get severity badge style
+  const getSeverityColor = (severity: string) => {
+    switch (severity?.toLowerCase()) {
+      case 'high':
+        return 'bg-red-50 text-red-700 border-red-200';
+      case 'medium':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'low':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      default:
+        return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
 
   return (
     <SheetWithStackingView onTravelStatusChange={travelStatusChangeHandler}>
-      <Scroll.Root className="ExampleSheetWithStacking-scrollView" asChild>
+      {/* Dismissal handle at top */}
+      <div className="pt-4 pb-2 flex justify-center">
+        <div className="w-10 h-1 bg-gray-200 rounded-full"></div>
+      </div>
+      
+      <Scroll.Root className="h-full" asChild>
         <Scroll.View
           scrollGestureTrap={{ yEnd: true }}
           onScroll={handleScroll}
+          className="h-full"
         >
-          <Scroll.Content className="ExampleSheetWithStacking-scrollContent">
-            <div className="ExampleSheetWithStacking-banner" />
-            <div className="ExampleSheetWithStacking-profilePicture" />
-            <div className="ExampleSheetWithStacking-info">
-              <div className="ExampleSheetWithStacking-identification">
-                <Sheet.Title className="ExampleSheetWithStacking-username">
-                  {data.name}
-                </Sheet.Title>
-                <div className="ExampleSheetWithStacking-handle">
-                  @{data.handle}
-                </div>
-              </div>
-
-              <div className="ExampleSheetWithStacking-metrics">
-                <div className="ExampleSheetWithStacking-metric">
-                  <span className="ExampleSheetWithStacking-metricCount">
-                    {data.followers}
-                  </span>
-                  <span className="ExampleSheetWithStacking-metricLabel">
-                    {" "}
-                    followers
-                  </span>
-                </div>
-
-                <div className="ExampleSheetWithStacking-metric">
-                  <span className="ExampleSheetWithStacking-metricCount">
-                    {data.following}
-                  </span>
-                  <span className="ExampleSheetWithStacking-metricLabel">
-                    {" "}
-                    following
-                  </span>
-                </div>
-
-                <div className="ExampleSheetWithStacking-metric">
-                  <span className="ExampleSheetWithStacking-metricCount">
-                    {data.posts}
-                  </span>
-                  <span className="ExampleSheetWithStacking-metricLabel">
-                    {" "}
-                    posts
-                  </span>
-                </div>
-              </div>
-
-              <div className="ExampleSheetWithStacking-bio">{data.bio}</div>
+          <Scroll.Content className="pb-16">
+            {/* Header image - Full bleed with responsive height */}
+            <div className="w-full aspect-[3/2] bg-gray-50 mb-8">
+              <img 
+                src={data.imageUrl || "https://placehold.co/600x400/e6e6e6/a6a6a6?text=Issue+Image"} 
+                alt={data.name} 
+                className="w-full h-full object-cover"
+              />
             </div>
-            <SheetWithStackingRoot className="ExampleSheetWithStacking-nestedSheetRoot">
-              <section className="ExampleSheetWithStacking-posts">
-                {data.content.map((post: any, index: number) => (
-                  <div className="ExampleSheetWithStacking-post" key={index}>
-                    {post.reposted && (
-                      <>
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.1"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="ExampleSheetWithStacking-postRepostIcon"
-                        >
-                          <path d="m2 9 3-3 3 3" />
-                          <path d="M13 18H7a2 2 0 0 1-2-2V6" />
-                          <path d="m22 15-3 3-3-3" />
-                          <path d="M11 6h6a2 2 0 0 1 2 2v10" />
-                        </svg>
-
-                        <div className="ExampleSheetWithStacking-postRepostText">
-                          {data.name} reposted
-                        </div>
-                      </>
-                    )}
-                    <div className="ExampleSheetWithStacking-postProfilePicture" />
-                    <div className="ExampleSheetWithStacking-postContent">
-                      <div className="ExampleSheetWithStacking-postHeader">
-                        <div className="ExampleSheetWithStacking-postUsername">
-                          {post.username}
-                        </div>
-                        <div>@{post.handle}</div>
-                        <div>·</div>
-                        <div>{post.hoursPast}h</div>
-                      </div>
-                      <div className="ExampleSheetWithStacking-postBody">
-                        {post.content.map(
-                          (paragraph: string, index: number) => (
-                            <p
-                              className="ExampleSheetWithStacking-postParagraph"
-                              key={index}
-                            >
-                              {paragraph}
-                            </p>
-                          )
-                        )}
-                      </div>
-                      <div className="ExampleSheetWithStacking-postActions">
-                        <div className="ExampleSheetWithStacking-postAction">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="19"
-                            height="19"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.05"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ExampleSheetWithStacking-postCommentsIcon"
-                          >
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                          </svg>
-                          <div className="ExampleSheetWithStacking-postCommentsCount">
-                            {post.commentsCount}
-                          </div>
-                        </div>
-                        <div className="ExampleSheetWithStacking-postAction">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="23"
-                            height="23"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ExampleSheetWithStacking-postSharesIcon"
-                          >
-                            <path d="m2 9 3-3 3 3" />
-                            <path d="M13 18H7a2 2 0 0 1-2-2V6" />
-                            <path d="m22 15-3 3-3-3" />
-                            <path d="M11 6h6a2 2 0 0 1 2 2v10" />
-                          </svg>
-                          <div className="ExampleSheetWithStacking-postSharesCount">
-                            {post.sharesCount}
-                          </div>
-                        </div>
-                        <div className="ExampleSheetWithStacking-postAction">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="19"
-                            height="19"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.05"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ExampleSheetWithStacking-postLikesIcon"
-                          >
-                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                          </svg>
-                          <div className="ExampleSheetWithStacking-postLikesCount">
-                            {post.likesCount}
-                          </div>
-                        </div>
-
-                        <div className="ExampleSheetWithStacking-postAction">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ExampleSheetWithStacking-postShareIcon"
-                          >
-                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                            <polyline points="16 6 12 2 8 6" />
-                            <line x1="12" x2="12" y1="2" y2="15" />
-                          </svg>
-                        </div>
-                      </div>
+            
+            {/* Content container with increased padding */}
+            <div className="px-6 md:px-8 space-y-8">
+              {/* Title with more space */}
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-gray-900">{data.name}</h2>
+                
+                {/* Description with increased spacing */}
+                <p className="mt-4 text-base text-gray-600 leading-relaxed">
+                  {data.description || "No description provided for this issue."}
+                </p>
+              </div>
+              
+              {/* Details in a clean, minimal card */}
+              <div className="bg-gray-50 rounded-2xl p-6 space-y-5">
+                <h3 className="font-medium text-gray-900 mb-4">Issue Details</h3>
+                
+                <div className="space-y-5">
+                  {/* Severity */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Severity</span>
                     </div>
+                    <Badge className={`border ${getSeverityColor(data.severity || 'medium')}`}>
+                      {data.severity || 'Medium'}
+                    </Badge>
                   </div>
-                ))}
-              </section>
-              {data.nestedSheet && (
-                <div className="ExampleSheetWithStacking-relatedPages">
-                  <SheetTriggerCard color="green">
-                    Sheet with Stacking
-                  </SheetTriggerCard>
+                  
+                  {/* Date */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <Calendar className="h-4 w-4" />
+                      <span>Reported on</span>
+                    </div>
+                    <span className="text-sm font-medium">{data.date || 'Today'}</span>
+                  </div>
+                  
+                  {/* Location */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <MapPin className="h-4 w-4" />
+                      <span>Location</span>
+                    </div>
+                    <span className="text-sm font-medium">{data.location || 'Unknown'}</span>
+                  </div>
+                  
+                  {/* Reporter */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <Avatar className="h-4 w-4" />
+                      <span>Reported by</span>
+                    </div>
+                    <span className="text-sm font-medium">{data.user || 'Anonymous'}</span>
+                  </div>
                 </div>
-              )}
-              {data.nestedSheet && (
-                <ExampleSheetWithStackingView data={data.nestedSheet} />
-              )}
-            </SheetWithStackingRoot>
+              </div>
+              
+              {/* Suggestions with clean styling */}
+              <div>
+                <h3 className="font-medium text-gray-900 mb-4">Suggestions</h3>
+                <ul className="space-y-3 pl-5 list-disc text-sm text-gray-600">
+                  {data.suggestions?.map((suggestion: string, i: number) => (
+                    <li key={i} className="leading-relaxed">{suggestion}</li>
+                  )) || (
+                    <>
+                      <li className="leading-relaxed">Contact local maintenance team</li>
+                      <li className="leading-relaxed">Take photos of the area for documentation</li>
+                      <li className="leading-relaxed">Avoid the area until resolved</li>
+                    </>
+                  )}
+                </ul>
+              </div>
+              
+              {/* Comments section with more space */}
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="font-medium text-gray-900">Comments</h3>
+                  <span className="text-xs text-gray-500">{data.comments?.length || 0} comments</span>
+                </div>
+                
+                <div className="space-y-5 mb-6">
+                  {data.comments?.length > 0 ? (
+                    data.comments.map((comment: any, i: number) => (
+                      <div key={i} className="bg-gray-50 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <div className="bg-blue-50 text-blue-700 w-full h-full flex items-center justify-center text-xs font-bold">
+                                {comment.user?.charAt(0) || 'U'}
+                              </div>
+                            </Avatar>
+                            <span className="text-sm font-medium">{comment.user}</span>
+                          </div>
+                          <span className="text-xs text-gray-500">{comment.date}</span>
+                        </div>
+                        <p className="text-sm leading-relaxed text-gray-700">{comment.text}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500 text-sm">
+                      No comments yet. Be the first to comment!
+                    </div>
+                  )}
+                </div>
+                
+                {/* Add comment button - cleaner and more minimal */}
+                <Button 
+                  className="w-full gap-2 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 h-12"
+                  variant="ghost"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Add Comment
+                </Button>
+              </div>
+              
+              {/* Additional space at bottom */}
+              <div className="h-8"></div>
+              
+              <SheetWithStackingRoot className="mt-8">
+                {data.nestedSheet && (
+                  <ExampleSheetWithStackingView data={data.nestedSheet} />
+                )}
+              </SheetWithStackingRoot>
+            </div>
           </Scroll.Content>
         </Scroll.View>
       </Scroll.Root>
-      <div
-        className={`ExampleSheetWithStacking-topBar fullyVisible-${scrolled}`}
-      >
-        <Sheet.Trigger
-          className="ExampleSheetWithStacking-dismissTrigger"
-          action="dismiss"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className={`ExampleSheetWithStacking-topDismissIcon fullyVisible-${scrolled}`}
-          >
-            <path
-              fillRule="evenodd"
-              d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className={`ExampleSheetWithStacking-flowDismissIcon fullyVisible-${scrolled}`}
-          >
-            <path
-              fillRule="evenodd"
-              d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </Sheet.Trigger>
-
-        <h3 className="ExampleSheetWithStacking-topBarTitle">{data.name}</h3>
-      </div>
+      
+      {/* Removed the fixed component from the bottom as requested */}
     </SheetWithStackingView>
   );
 };
