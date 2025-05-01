@@ -12,7 +12,7 @@
 
 .SheetWithStacking-content {
    /* SELF-LAYOUT */
-   height: calc(min(500px, 90svh) + env(safe-area-inset-bottom, 0px));
+   height: calc(min(900px, 100svh) + env(safe-area-inset-bottom, 0px));
 
    /* APPEARANCE */
    background-color: transparent;
