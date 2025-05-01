@@ -183,6 +183,7 @@ type ExamplePageProps = {
   };
   issueContent: string[];
   imageUrls: string[];
+  autoOpen?: boolean;
 };
 
 // Default mock data if props aren't provided
@@ -197,7 +198,8 @@ const defaultCategoryData = {
 const ExamplePage = ({ 
   categoryData = defaultCategoryData, 
   issueContent = [], 
-  imageUrls = []
+  imageUrls = [],
+  autoOpen = false
 }: ExamplePageProps) => {
   const params = useParams();
   const router = useRouter();
@@ -219,6 +221,21 @@ const ExamplePage = ({
   const closeIssueSheet = () => {
     setSelectedIssueId(null);
   };
+
+  // Auto-open the sheet if specified in props
+  useEffect(() => {
+    if (autoOpen) {
+      // Add a small delay to ensure the component is fully mounted
+      const timer = setTimeout(() => {
+        const triggerElement = document.querySelector('[data-auto-open="true"]');
+        if (triggerElement) {
+          (triggerElement as HTMLElement).click();
+        }
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [autoOpen]);
 
   // renderImageGrid function with actual images
   const renderImageGrid = () => {
@@ -297,6 +314,7 @@ const ExamplePage = ({
             categoryData.severity === "medium" ? "yellow" : 
             "green"
           }
+          data-auto-open={autoOpen}
         >
           {categoryData.title}
         </SheetTriggerCard>

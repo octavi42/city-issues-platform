@@ -2,9 +2,12 @@
 
 import React, { CSSProperties, useState, useEffect, useRef } from "react";
 import Link from 'next/link';
-// import anime from 'animejs/lib/anime.es.js'; // Remove old default import if unused
-import { animate } from 'animejs'; // Correct named import
+import { useRouter, useSearchParams } from 'next/navigation';
+import { animate } from 'animejs';
+import { AnimatePresence, motion } from 'framer-motion';
 import ExamplePage from "@/components/examples/Page/ExamplePage";
+import CategoriesSheetWrapper from "@/components/CategoriesSheetWrapper";
+import { categories } from '@/data/categories';
 
 const styles = {
   container: {
@@ -175,144 +178,17 @@ const styles = {
   } as CSSProperties
 };
 
-// Enhanced categories data with all necessary information
-const categories = [
-  { 
-    name: "Burnings", 
-    slug: "burnings", 
-    img: "/images/burning.jpg",
-    description: "Reports of burnings around the city, including trash fires, controlled burns, and other fire-related issues that may pose safety risks to residents.",
-    stats: {
-      reported: 39,
-      solved: 200,
-      resolution: "4d"
-    },
-    severity: "high",
-    issues: [
-      "Fire hazard near park", 
-      "Trash burning in alley", 
-      "Forest fire risk zone", 
-      "Burnt trash bins", 
-      "Smoking area fire risk", 
-      "Campfire remains", 
-      "Burnt debris", 
-      "Flammable waste"
-    ],
-    images: [
-      "/images/burning.jpg",
-      "/images/burning.jpg",
-      "/images/burning.jpg",
-      "/images/burning.jpg",
-      "/images/burning.jpg",
-      "/images/burning.jpg",
-      "/images/burning.jpg",
-      "/images/burning.jpg"
-    ]
-  },
-  { 
-    name: "Traffic", 
-    slug: "traffic", 
-    img: "/images/traffic.jpg",
-    description: "Traffic congestion, road closures, accidents, and other transportation-related issues affecting mobility throughout Cluj-Napoca.",
-    stats: {
-      reported: 104,
-      solved: 387,
-      resolution: "2d"
-    },
-    severity: "medium",
-    issues: [
-      "Rush hour congestion", 
-      "Broken traffic light", 
-      "Road construction", 
-      "Pedestrian crossing issue", 
-      "Illegal parking zone", 
-      "Speeding area", 
-      "Bus lane violation", 
-      "Missing road signs"
-    ],
-    images: [
-      "/images/traffic.jpg",
-      "/images/traffic.jpg",
-      "/images/traffic.jpg",
-      "/images/traffic.jpg",
-      "/images/traffic.jpg",
-      "/images/traffic.jpg",
-      "/images/traffic.jpg",
-      "/images/traffic.jpg"
-    ]
-  },
-  { 
-    name: "Graffiti", 
-    slug: "graffiti", 
-    img: "/images/graffiti.jpg",
-    description: "Unwanted spray paint, markings, and visual pollution on city property and public spaces.",
-    stats: {
-      reported: 87,
-      solved: 435,
-      resolution: "3d"
-    },
-    severity: "low",
-    issues: [
-      "Wall art defacement", 
-      "Bridge graffiti", 
-      "Public property damage", 
-      "School wall tagging", 
-      "Historic building vandalism", 
-      "Park bench graffiti", 
-      "Bus stop markings", 
-      "Underpass tagging"
-    ],
-    images: [
-      "/images/graffiti.jpg",
-      "/images/graffiti.jpg",
-      "/images/graffiti.jpg",
-      "/images/graffiti.jpg",
-      "/images/graffiti.jpg",
-      "/images/graffiti.jpg",
-      "/images/graffiti.jpg",
-      "/images/graffiti.jpg"
-    ]
-  },
-  { 
-    name: "Potholes", 
-    slug: "potholes", 
-    img: "/images/pothole.jpg",
-    description: "Road damage including potholes, cracks, and surface deterioration that can cause vehicle damage or safety hazards for drivers and cyclists.",
-    stats: {
-      reported: 39,
-      solved: 200,
-      resolution: "4d"
-    },
-    severity: "high",
-    issues: [
-      "Main street damage", 
-      "Intersection hazard", 
-      "Deep pothole on bridge", 
-      "Sidewalk crack danger", 
-      "Bicycle lane damage", 
-      "Highway exit pothole", 
-      "Residential street damage", 
-      "School zone hazard"
-    ],
-    images: [
-      "/images/pothole.jpg",
-      "/images/pothole.jpg",
-      "/images/pothole.jpg",
-      "/images/pothole.jpg",
-      "/images/pothole.jpg",
-      "/images/pothole.jpg",
-      "/images/pothole.jpg",
-      "/images/pothole.jpg"
-    ]
-  }
-];
-
 const INITIAL_COLLAPSED_HEIGHT = '4.5rem';
 
 export default function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const sheetQuery = searchParams.get('sheet');
+
   const [infoOpen, setInfoOpen] = useState(false);
   const infoContentRef = useRef<HTMLDivElement>(null);
   const fadeOverlayRef = useRef<HTMLDivElement>(null);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   const toggleInfo = () => {
     setInfoOpen(!infoOpen);
@@ -354,6 +230,10 @@ export default function Home() {
 
   }, [infoOpen]);
 
+  const openCategoriesSheet = () => {
+    router.push('/categories', { scroll: false });
+  };
+
   return (
     <div style={styles.container}>
       <main style={styles.main}>
@@ -384,16 +264,27 @@ export default function Home() {
         <div style={styles.sectionContainer}>
           <div style={styles.sectionHeader}>
             <h2 style={styles.sectionTitle}>Categories</h2>
-            <div style={styles.viewAllButton}>
+            <button 
+              onClick={openCategoriesSheet}
+              style={styles.viewAllButton}
+              className="hover:bg-gray-200 transition-colors duration-150"
+            >
               <span>View all</span>
-            </div>
+            </button>
           </div>
           
           <div style={styles.categoryGrid}>
             {categories.map((category) => (
               <div 
                 key={category.slug} 
-                style={styles.categoryCard}
+                style={{
+                  ...styles.categoryCard,
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s ease',
+                  ...(hoveredCard === category.slug ? { transform: 'translateY(-5px)' } : {})
+                }}
+                onMouseEnter={() => setHoveredCard(category.slug)}
+                onMouseLeave={() => setHoveredCard(null)}
               >
                 <ExamplePage 
                   key={category.slug} 
@@ -486,6 +377,16 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      <AnimatePresence mode="wait">
+        {sheetQuery === 'categories' && (
+          <motion.div
+             key="categories-sheet-wrapper"
+          >
+             <CategoriesSheetWrapper />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

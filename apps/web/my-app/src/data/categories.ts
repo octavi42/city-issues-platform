@@ -1,11 +1,25 @@
-"use client";
+// Categories data
 
-import { useParams, useRouter } from 'next/navigation';
-import React, { CSSProperties, useState, useEffect } from "react";
-import ExamplePage from "@/components/examples/Page/ExamplePage";
+// Define types for better type safety
+export interface CategoryStats {
+  reported: number;
+  solved: number;
+  resolution: string;
+}
 
-// Use the same category data as in the main page
-const categories = [
+export interface Category {
+  name: string;
+  slug: string;
+  img: string;
+  description: string;
+  stats: CategoryStats;
+  severity: string;
+  issues: string[];
+  images: string[];
+}
+
+// Enhanced categories data with all necessary information
+export const categories: Category[] = [
   { 
     name: "Burnings", 
     slug: "burnings", 
@@ -133,127 +147,5 @@ const categories = [
       "/images/pothole.jpg",
       "/images/pothole.jpg"
     ]
-  },
-];
-
-const styles = {
-  container: {
-    padding: "1rem",
-    maxWidth: "28rem",
-    margin: "0 auto",
-    minHeight: "100vh",
-    backgroundColor: "white",
-    color: "black",
-    fontFamily: "'Schibsted Grotesk', Arial, sans-serif",
-  } as CSSProperties,
-  backButton: {
-    width: "2.5rem",
-    height: "2.5rem",
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F7F7F7",
-    color: "#555",
-    cursor: "pointer",
-    border: "none",
-    fontSize: "1.2rem",
-    marginBottom: "1rem"
-  } as CSSProperties,
-  detailContainer: {
-    backgroundColor: "white",
-    borderRadius: "1.5rem",
-    padding: "1rem",
-    marginBottom: "1rem"
-  } as CSSProperties,
-  title: {
-    fontSize: "1.5rem",
-    fontWeight: "700",
-    marginBottom: "0.5rem"
-  } as CSSProperties,
-  description: {
-    fontSize: "1rem",
-    color: "#555",
-    marginBottom: "1rem"
-  } as CSSProperties,
-  imageGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap: "1rem",
-    marginTop: "1rem"
-  } as CSSProperties,
-  imageItem: {
-    borderRadius: "1rem",
-    overflow: "hidden",
-    aspectRatio: "1/1",
-    position: "relative"
-  } as CSSProperties,
-  image: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover"
-  } as CSSProperties
-};
-
-export default function CategoryPage() {
-  const params = useParams();
-  const router = useRouter();
-  const slug = params?.slug as string;
-  
-  // Find the category data based on the slug
-  const category = categories.find(cat => cat.slug === slug);
-  
-  // If category not found, redirect to home
-  useEffect(() => {
-    if (!category) {
-      router.push('/');
-    }
-  }, [category, router]);
-  
-  if (!category) {
-    return null; // Return nothing while redirecting
   }
-  
-  const handleBack = () => {
-    router.push('/');
-  };
-  
-  return (
-    <div style={styles.container}>
-      <button 
-        onClick={handleBack}
-        style={styles.backButton}
-        aria-label="Back to home"
-      >
-        ←
-      </button>
-      
-      {/* Display the category details directly, no auto-open needed */}
-      <div style={styles.detailContainer}>
-        <h1 style={styles.title}>{category.name}</h1>
-        <p style={styles.description}>{category.description}</p>
-        
-        <div style={styles.imageGrid}>
-          {category.images.slice(0, 4).map((image, index) => (
-            <div key={index} style={styles.imageItem}>
-              <img src={image} alt={`${category.name} image ${index + 1}`} style={styles.image} />
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Use ExamplePage as a detail page when clicked from this page */}
-      <ExamplePage 
-        categoryData={{
-          title: category.name,
-          description: category.description,
-          stats: category.stats,
-          severity: category.severity,
-          slug: category.slug
-        }}
-        issueContent={category.issues}
-        imageUrls={category.images}
-      />
-    </div>
-  );
-} 
+]; 

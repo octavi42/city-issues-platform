@@ -21,12 +21,17 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
+  sheet,
 }: {
   children: React.ReactNode;
+  sheet: string;
 }) {
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
-      <body>{children}</body>
+      <body>
+        {children}
+        {sheet}
+      </body>
     </html>
   );
 }
