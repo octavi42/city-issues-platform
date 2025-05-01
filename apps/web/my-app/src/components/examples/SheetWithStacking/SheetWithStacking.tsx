@@ -21,7 +21,7 @@ const SheetWithStackingStack = (props: any) => {
 // The Sheet Root
 
 const SheetWithStackingRoot = (props: any) => (
-  <Sheet.Root license="commercial" forComponent="closest" {...props} />
+  <Sheet.Root license="non-commercial" forComponent="closest" {...props} />
 );
 
 //
