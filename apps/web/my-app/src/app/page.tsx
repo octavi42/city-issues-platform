@@ -112,8 +112,32 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mb-10">
-            <div className="flex justify-between items-center mb-6">
+          <div className="pb-12">
+            <div className="grid grid-cols-2 gap-5">
+              <div className="rounded-2xl p-4 bg-[#DBF24C] border border-lime-200">
+                <p className="text-3xl font-bold text-lime-900">40</p>
+                <p className="text-sm text-lime-800">issues</p>
+              </div>
+              
+              <div className="rounded-2xl p-4 bg-gray-100 border border-gray-200">
+                <p className="text-3xl font-bold">5s</p>
+                <p className="text-sm text-gray-600">avg response time</p>
+              </div>
+              
+              <div className="rounded-2xl p-4 bg-gray-100 border border-gray-200">
+                <p className="text-3xl font-bold">25</p>
+                <p className="text-sm text-gray-600">degrees celsius</p>
+              </div>
+              
+              <div className="rounded-2xl p-4 bg-[#FE7A71] border border-red-300">
+                <p className="text-3xl font-bold text-white">5</p>
+                <p className="text-sm text-red-100">critical problems</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="pb-12">
+            <div className="flex justify-between items-center pb-8">
               <h2 className="text-2xl font-semibold">Categories</h2>
               <button 
                 onClick={openCategoriesSheet}
@@ -140,36 +164,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mb-10">
-            <p className="text-gray-500 text-base leading-relaxed tracking-normal mb-6">
-              The official language is Romanian. Most educated people born after about 1970 will speak reasonably good English and will likely be proficient in
-            </p>
-            
-            <div className="grid grid-cols-2 gap-5">
-              <div className="rounded-2xl p-4 bg-[#DBF24C] border border-lime-200">
-                <p className="text-3xl font-bold text-lime-900">40</p>
-                <p className="text-sm text-lime-800">issues</p>
-              </div>
-              
-              <div className="rounded-2xl p-4 bg-gray-100 border border-gray-200">
-                <p className="text-3xl font-bold">5s</p>
-                <p className="text-sm text-gray-600">avg response time</p>
-              </div>
-              
-              <div className="rounded-2xl p-4 bg-gray-100 border border-gray-200">
-                <p className="text-3xl font-bold">25</p>
-                <p className="text-sm text-gray-600">degrees celsius</p>
-              </div>
-              
-              <div className="rounded-2xl p-4 bg-[#FE7A71] border border-red-300">
-                <p className="text-3xl font-bold text-white">5</p>
-                <p className="text-sm text-red-100">critical problems</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-10">
-            <div className="flex justify-between items-center mb-6">
+          <div className="pb-12">
+            <div className="flex justify-between items-center pb-8">
               <h2 className="text-2xl font-semibold">Issues</h2>
               <div className="bg-gray-100 rounded-full py-2 px-4 text-sm font-semibold tracking-wide">
                 <span>View all</span>

@@ -21,16 +21,19 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-  sheet,
+  cat_modal,
+  iss_modal,
 }: {
   children: React.ReactNode;
-  sheet: string;
+  cat_modal: React.ReactNode;
+  iss_modal: React.ReactNode;
 }) {
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
       <body>
         {children}
-        {sheet}
+        {cat_modal}
+        {iss_modal}
       </body>
     </html>
   );

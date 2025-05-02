@@ -14,7 +14,7 @@ import {
 } from '@/components/examples/SheetWithStacking/SheetWithStacking';
 import { ExampleSheetWithStackingView } from '@/components/examples/SheetWithStacking/ExampleSheetWithStacking';
 import { SheetTriggerCard } from '@/components/app/SheetTriggerCard/SheetTriggerCard';
-import { Page } from '../../../../src_arc/components/examples/Page/Page';
+import { Page } from './Page';
 import { SheetDismissButton } from '../_GenericComponents/SheetDismissButton/SheetDismissButton';
 
 const pageStyles = {

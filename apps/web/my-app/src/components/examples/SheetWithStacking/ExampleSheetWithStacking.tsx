@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useState, useEffect, useRef } from "react";
 import { Sheet, Scroll } from "@silk-hq/components";
 import { Button } from "../../../components/ui/button";
