@@ -5,157 +5,6 @@ import { CSSProperties, useState, useEffect, useRef } from "react";
 import { useRouter } from 'next/navigation';
 
 
-const pageStyles = {
-    container: {
-      minHeight: "100vh",
-      backgroundColor: "white",
-      color: "black",
-      fontFamily: "'Schibsted Grotesk', Arial, sans-serif",
-      padding: "1.5rem",
-      paddingBottom: "5rem",
-      maxWidth: "28rem",
-      margin: "0 auto"
-    } as CSSProperties,
-    headerContainer: {
-      display: "flex",
-      alignItems: "center",
-      marginBottom: "1rem",
-      position: "relative"
-    } as CSSProperties,
-    backButton: {
-      width: "2.5rem",
-      height: "2.5rem",
-      borderRadius: "50%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "#F7F7F7",
-      color: "#555",
-      cursor: "pointer",
-      marginRight: "1rem",
-      border: "none",
-      fontSize: "1.2rem",
-      outline: "none",
-      transition: "background-color 0.2s ease"
-    } as CSSProperties,
-    heading: {
-      fontSize: "2.25rem", // 36px
-      fontWeight: "700",
-      lineHeight: "1.2",
-      textTransform: "capitalize",
-      color: "#000000",
-      flex: 1
-    } as CSSProperties,
-    description: {
-      fontSize: "1.25rem", // 20px
-      lineHeight: "1.25",
-      color: "#787575",
-      letterSpacing: "0.04em",
-      marginBottom: "1.5rem"
-    } as CSSProperties,
-    statsContainer: {
-      backgroundColor: "#F7F7F7",
-      borderRadius: "1.875rem", // 30px
-      padding: "1.5rem",
-      marginBottom: "1.5rem"
-    } as CSSProperties,
-    statsRow: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: "1.5rem"
-    } as CSSProperties,
-    statItem: {
-      display: "flex",
-      flexDirection: "column" as const,
-      alignItems: "center",
-      textAlign: "center",
-      flex: 1
-    } as CSSProperties,
-    statValue: {
-      fontSize: "2.25rem", // 36px
-      fontWeight: "700",
-      lineHeight: "1.2",
-      color: "#000000",
-      marginBottom: "0.25rem"
-    } as CSSProperties,
-    statLabel: {
-      fontSize: "0.9375rem", // 15px
-      lineHeight: "1.25",
-      color: "#000000",
-      textAlign: "center",
-      maxWidth: "5rem"
-    } as CSSProperties,
-    severityContainer: {
-      backgroundColor: "#F7F7F7",
-      borderRadius: "1.875rem", // 30px
-      padding: "1rem 1.5rem",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: "1.5rem"
-    } as CSSProperties,
-    highSeverity: {
-      backgroundColor: "#FE7A71",
-      color: "#F7F7F7",
-      borderRadius: "1.875rem", // 30px
-      padding: "0.5rem 1rem",
-      fontSize: "0.9375rem", // 15px
-      fontWeight: "400",
-      width: "5rem",
-      textAlign: "center"
-    } as CSSProperties,
-    mediumSeverity: {
-      color: "#728019",
-      fontSize: "0.9375rem", // 15px
-      fontWeight: "400",
-      padding: "0.5rem 0",
-      width: "5rem",
-      textAlign: "center"
-    } as CSSProperties,
-    lowSeverity: {
-      color: "#075CDD",
-      fontSize: "0.9375rem", // 15px
-      fontWeight: "400",
-      padding: "0.5rem 0",
-      width: "5rem",
-      textAlign: "center"
-    } as CSSProperties,
-    imagesGrid: {
-      display: "grid",
-      gridTemplateColumns: "repeat(2, 1fr)",
-      gap: "1rem",
-      marginTop: "2rem"
-    } as CSSProperties,
-    imageItem: (aspectRatio: string) => ({
-      borderRadius: "1.875rem", // 30px
-      overflow: "hidden",
-      aspectRatio: aspectRatio,
-      backgroundColor: "#F7F7F7",
-      marginBottom: "1rem",
-      opacity: 0, // Start hidden
-      transform: 'translateY(20px)', // Start shifted down
-      willChange: 'opacity, transform' // Hint for performance
-    } as CSSProperties),
-    placeholderImage: {
-      width: "100%",
-      height: "150px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "#666",
-      fontSize: "0.875rem",
-      fontWeight: "500",
-      backgroundColor: "#f0f0f0",
-      borderRadius: "1rem",
-      cursor: "pointer",
-      transition: "transform 0.2s, background-color 0.2s",
-      "&:hover": {
-        transform: "scale(1.02)",
-        backgroundColor: "#e5e5e5"
-      }
-    } as CSSProperties
-  };
-
 // create a component
 const Category = () => {
 
@@ -238,80 +87,150 @@ const Category = () => {
     // renderImageGrid function using client-side state
     const renderImageGrid = () => {
         if (imageDataList.length === 0) {
-            // Optionally render placeholders or nothing while loading
             return null; // Or some loading indicator
         }
 
+        // Split the data into two arrays for two columns
+        const leftColumnData = imageDataList.filter((_, i) => i % 2 === 0);
+        const rightColumnData = imageDataList.filter((_, i) => i % 2 === 1);
+
         return (
-        <div style={{ columnCount: 2, columnGap: "1rem" }}>
-            {imageDataList.map((imageData, index) => {
-                return (
-                    <div
-                    key={imageData.id}
-                    ref={el => {
-                        if (imageRefs.current) {
-                        imageRefs.current[index] = el;
-                        }
-                    }}
-                    style={{ marginBottom: "1rem" }}
-                    >
-                        <div className={`imageItem image-${imageData.id}`} onClick={() => {
-                        router.push(`/issue/issue-${imageData.id.toString()}`);
-                        }}>
-                        <img src={imageData.imageUrl} alt={imageData.issueText} />
-                        <div className="overlay">
-                            <div className="title">
-                            {imageData.issueText || `${categoryData.slug} ${imageData.id}`}
-                            </div>
-                            <div className="meta">
-                            {imageData.daysAgo}d ago · {imageData.reportsCount} reports
+            <div className="grid grid-cols-2 gap-4 mt-8 w-full">
+                {/* Left Column */}
+                <div className="flex flex-col gap-4 w-full">
+                    {leftColumnData.map((imageData) => (
+                        <div
+                            key={imageData.id}
+                            ref={el => {
+                                if (imageRefs.current) {
+                                    imageRefs.current[imageData.id - 1] = el;
+                                }
+                            }}
+                            className="w-full"
+                        >
+                            <div 
+                                className="cursor-pointer rounded-[1.875rem] overflow-hidden bg-[#F7F7F7] w-full"
+                                onClick={() => {
+                                    router.push(`/issue/issue-${imageData.id.toString()}`);
+                                }}
+                            >
+                                <img 
+                                    src={imageData.imageUrl} 
+                                    alt={imageData.issueText} 
+                                    className="w-full h-auto object-cover" 
+                                />
+                                <div className="overlay p-3">
+                                    <div className="title font-bold">
+                                        {imageData.issueText || `${categoryData.slug} ${imageData.id}`}
+                                    </div>
+                                    <div className="meta text-sm text-gray-600">
+                                        {imageData.daysAgo}d ago · {imageData.reportsCount} reports
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    ))}
+                </div>
+
+                {/* Right Column */}
+                <div className="flex flex-col gap-4 w-full">
+                    {rightColumnData.map((imageData) => (
+                        <div
+                            key={imageData.id}
+                            ref={el => {
+                                if (imageRefs.current) {
+                                    imageRefs.current[imageData.id - 1] = el;
+                                }
+                            }}
+                            className="w-full"
+                        >
+                            <div 
+                                className="cursor-pointer rounded-[1.875rem] overflow-hidden bg-[#F7F7F7] w-full"
+                                onClick={() => {
+                                    router.push(`/issue/issue-${imageData.id.toString()}`);
+                                }}
+                            >
+                                <img 
+                                    src={imageData.imageUrl} 
+                                    alt={imageData.issueText} 
+                                    className="w-full h-auto object-cover" 
+                                />
+                                <div className="overlay p-3">
+                                    <div className="title font-bold">
+                                        {imageData.issueText || `${categoryData.slug} ${imageData.id}`}
+                                    </div>
+                                    <div className="meta text-sm text-gray-600">
+                                        {imageData.daysAgo}d ago · {imageData.reportsCount} reports
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                );
-            })}
-        </div>
+                    ))}
+                </div>
+            </div>
         );
     };
 
     return (
-        <div style={{
-                ...pageStyles.container,
-                maxHeight: '100%',
-                overflowY: 'auto',
-            }}>
-            <div style={pageStyles.headerContainer}>
-                <h1 style={pageStyles.heading}>{categoryData.title}</h1>
-            </div>
-            <p style={pageStyles.description}>{categoryData.description}</p>
-            {/* Stats Container */}
-            <div style={pageStyles.statsContainer}>
-                <div style={pageStyles.statsRow}>
-                <div style={pageStyles.statItem}>
-                    <div style={pageStyles.statValue}>{categoryData.stats.reported}</div>
-                    <div style={pageStyles.statLabel}>reported issues</div>
-                </div>
-                <div style={pageStyles.statItem}>
-                    <div style={pageStyles.statValue}>{categoryData.stats.solved}</div>
-                    <div style={pageStyles.statLabel}>solved issues</div>
-                </div>
-                <div style={pageStyles.statItem}>
-                    <div style={pageStyles.statValue}>{categoryData.stats.resolution}</div>
-                    <div style={pageStyles.statLabel}>resolution time</div>
-                </div>
-                </div>
-            </div>
-            {/* Severity Container */}
-            <div style={pageStyles.severityContainer}>
-                <div style={categoryData.severity === "high" ? pageStyles.highSeverity : { ...pageStyles.mediumSeverity, opacity: categoryData.severity === "medium" ? 1 : 0.5 }}>High</div>
-                <div style={categoryData.severity === "medium" ? pageStyles.mediumSeverity : { ...pageStyles.mediumSeverity, opacity: categoryData.severity === "medium" ? 1 : 0.5 }}>Medium</div>
-                <div style={categoryData.severity === "low" ? pageStyles.lowSeverity : { ...pageStyles.lowSeverity, opacity: categoryData.severity === "low" ? 1 : 0.5 }}>Low</div>
-            </div>
+        <div className="h-full w-full bg-white text-black font-['Schibsted_Grotesk',Arial,sans-serif] p-6 pb-20">
+            <div className="max-w-[28rem] mx-auto h-full overflow-y-auto">
+                <div className="w-full h-10"></div>
 
-            {/* Images Grid */}
-            {renderImageGrid()}
-          </div>
+                <div className="flex items-center mb-4 relative w-full">
+                    <h1 className="text-4xl font-bold leading-tight capitalize text-black flex-1">{categoryData.title}</h1>
+                </div>
+
+                <div className="w-full h-10"></div>
+
+                <p className="text-xl leading-tight text-[#787575] tracking-wider mb-6 w-full">{categoryData.description}</p>
+
+                <div className="w-full h-4"></div>
+                
+                {/* Stats Container */}
+                <div className="bg-[#F7F7F7] rounded-[1.875rem] p-6 mb-6 w-full">
+                    <div className="flex justify-between mb-6">
+                        <div className="flex flex-col items-center text-center flex-1">
+                            <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.reported}</div>
+                            <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">reported issues</div>
+                        </div>
+                        <div className="flex flex-col items-center text-center flex-1">
+                            <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.solved}</div>
+                            <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">solved issues</div>
+                        </div>
+                        <div className="flex flex-col items-center text-center flex-1">
+                            <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.resolution}</div>
+                            <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">resolution time</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="w-full h-4"></div>
+                
+                {/* Severity Container */}
+                <div className="bg-[#F7F7F7] rounded-[1.875rem] p-4 px-6 flex justify-between items-center mb-6 w-full">
+                    <div className={`${categoryData.severity === "high" ? 'bg-[#FE7A71] text-[#F7F7F7]' : ''} 
+                        rounded-[1.875rem] py-2 px-4 text-[0.9375rem] font-normal w-20 text-center
+                        ${categoryData.severity !== "high" ? 'text-[#075CDD] opacity-50' : ''}`}>
+                        High
+                    </div>
+                    <div className={`text-[#728019] text-[0.9375rem] font-normal py-2 w-20 text-center 
+                        ${categoryData.severity === "medium" ? '' : 'opacity-50'}`}>
+                        Medium
+                    </div>
+                    <div className={`text-[#075CDD] text-[0.9375rem] font-normal py-2 w-20 text-center 
+                        ${categoryData.severity === "low" ? '' : 'opacity-50'}`}>
+                        Low
+                    </div>
+                </div>
+
+                <div className="w-full h-4"></div>
+
+                {/* Images Grid */}
+                {renderImageGrid()}
+                
+                <div className="w-full h-20"></div>
+            </div>
+        </div>
     );
 };
 
