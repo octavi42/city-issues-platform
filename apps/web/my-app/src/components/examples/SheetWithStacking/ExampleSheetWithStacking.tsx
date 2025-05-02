@@ -107,7 +107,7 @@ const ExampleSheetWithStackingView = ({ data }: any) => {
             {/* Main content with distinct spacing between sections */}
             <div className="px-8 md:px-10">
               {/* Sticky title bar with close button */}
-              <div className="sticky top-0 z-10 flex items-center justify-between py-6 bg-white/90 backdrop-blur-sm mb-20">
+              <div className="sticky top-0 z-[51] flex items-center justify-between py-6 bg-white/90 backdrop-blur-sm mb-20">
                 <h2 className="text-2xl font-bold tracking-tight text-gray-900">{data.name}</h2>
                 <Sheet.Trigger 
                   action="dismiss"

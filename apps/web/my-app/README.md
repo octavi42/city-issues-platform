@@ -18,6 +18,27 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
+## Neo4j Schema Dump
+
+This project includes a script to dump the Neo4j database schema using the APOC library.
+
+Before running the script, ensure the following environment variables are set:
+  - `NEO4J_URI` (e.g., `bolt://localhost:7687`)
+  - `NEO4J_USER`
+  - `NEO4J_PASSWORD`
+
+Install the required dependency:
+```bash
+npm install neo4j-driver
+```
+
+Then run:
+```bash
+npm run dump-schema
+```
+
+The schema will be written to `generated/neo4j-schema.json`.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More

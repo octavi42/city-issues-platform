@@ -45,7 +45,7 @@ export default function CategoriesSheetWrapper() {
           <Sheet.Backdrop 
             travelAnimation={{
               // Make backdrop fully transparent
-              opacity: () => 0, 
+              opacity: () => 0,
             }}
             // Remove themeColorDimming to ensure no color overlay
             // themeColorDimming="auto" 

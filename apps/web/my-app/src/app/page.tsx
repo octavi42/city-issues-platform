@@ -1,184 +1,12 @@
 "use client";
 
-import React, { CSSProperties, useState, useEffect, useRef } from "react";
-import Link from 'next/link';
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { animate } from 'animejs';
-import { AnimatePresence, motion } from 'framer-motion';
 import ExamplePage from "@/components/examples/Page/ExamplePage";
-import CategoriesSheetWrapper from "@/components/CategoriesSheetWrapper";
 import { categories } from '@/data/categories';
 
-const styles = {
-  container: {
-    minHeight: "100vh",
-    backgroundColor: "white",
-    color: "black",
-    fontFamily: "'Schibsted Grotesk', Arial, sans-serif",
-    padding: "1.5rem",
-    maxWidth: "28rem",
-    margin: "0 auto"
-  } as CSSProperties,
-  main: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "2rem"
-  } as CSSProperties,
-  heading: {
-    fontSize: "1.875rem",
-    fontWeight: "700",
-    lineHeight: "1.2",
-    marginBottom: "1rem"
-  } as CSSProperties,
-  infoContainer: {
-    position: "relative",
-    cursor: "pointer"
-  } as CSSProperties,
-  infoContent: {
-    overflow: "hidden",
-    position: "relative",
-    height: "4.5rem",
-    paddingBottom: '1.5rem'
-  } as CSSProperties,
-  infoContentText: {
-    fontSize: "1.25rem",
-    fontWeight: 400,
-    lineHeight: "1.25",
-    color: "#787575",
-    letterSpacing: "0.04em",
-    padding: "0.75rem 0",
-    borderRadius: "0.5rem",
-    marginBottom: '0.5rem'
-  } as CSSProperties,
-  fadeOverlay: {
-    content: '""',
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: "3rem",
-    background: "linear-gradient(to bottom, transparent, white)",
-    pointerEvents: "none",
-    opacity: 1,
-  } as CSSProperties,
-  sectionContainer: {
-    marginBottom: "1rem"
-  } as CSSProperties,
-  sectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "1rem"
-  } as CSSProperties,
-  sectionTitle: {
-    fontSize: "1.5rem",
-    fontWeight: "600"
-  } as CSSProperties,
-  viewAllButton: {
-    backgroundColor: "#F7F7F7",
-    borderRadius: "9999px",
-    padding: "0.5rem 1.25rem",
-    fontSize: "0.875rem", 
-    fontWeight: "700",
-    letterSpacing: "0.07em"
-  } as CSSProperties,
-  categoryGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap: "1rem"
-  } as CSSProperties,
-  categoryCardLink: {
-    textDecoration: 'none',
-    color: 'inherit',
-    display: 'block'
-  } as CSSProperties,
-  categoryCard: {
-    position: "relative",
-    borderRadius: "1.5rem",
-    overflow: "hidden",
-    aspectRatio: "1/1"
-  } as CSSProperties,
-  categoryImage: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover"
-  } as CSSProperties,
-  categoryLabel: {
-    position: "absolute",
-    bottom: "0.75rem",
-    left: "0",
-    right: "0", 
-    margin: "0 auto",
-    width: "6rem",
-    display: "flex",
-    justifyContent: "center",
-    zIndex: "10"
-  } as CSSProperties,
-  categoryBadge: {
-    backdropFilter: "blur(11px)",
-    backgroundColor: "rgba(255, 255, 255, 0.51)",
-    borderRadius: "9999px",
-    padding: "0.25rem 0.75rem",
-    fontSize: "0.75rem",
-    fontWeight: "600",
-    letterSpacing: "0.07em"
-  } as CSSProperties,
-  infoText: {
-    color: "#787575",
-    fontSize: "1.125rem",
-    letterSpacing: "0.04em",
-    marginBottom: "1rem"
-  } as CSSProperties,
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap: "0.75rem"
-  } as CSSProperties,
-  statsCard: (bgColor: string) => ({
-    borderRadius: "1.5rem",
-    padding: "0.75rem",
-    backgroundColor: bgColor
-  } as CSSProperties),
-  statValue: {
-    fontSize: "1.875rem",
-    fontWeight: "700" 
-  } as CSSProperties,
-  statLabel: {
-    fontSize: "0.875rem"
-  } as CSSProperties,
-  issuesList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.75rem"
-  } as CSSProperties,
-  issueCard: {
-    borderRadius: "1.5rem",
-    padding: "1rem",
-    backgroundColor: "#DBF24C"
-  } as CSSProperties,
-  issueText: {
-    color: "#595959",
-    fontSize: "1.125rem"
-  } as CSSProperties,
-  howToUseCard: {
-    borderRadius: "1.5rem",
-    padding: "1.25rem",
-    backgroundColor: "#97B9FF",
-    color: "white",
-    marginBottom: "2.5rem"
-  } as CSSProperties,
-  dotsContainer: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.25rem"
-  } as CSSProperties,
-  dot: {
-    fontSize: "1.5rem",
-    fontWeight: "600"
-  } as CSSProperties
-};
-
-const INITIAL_COLLAPSED_HEIGHT = '4.5rem';
+const INITIAL_COLLAPSED_HEIGHT = 'h-[4.5rem]';
 
 export default function Home() {
   const router = useRouter();
@@ -198,27 +26,45 @@ export default function Home() {
     if (!infoContentRef.current || !fadeOverlayRef.current) return;
 
     const contentEl = infoContentRef.current;
-    let targetHeight = INITIAL_COLLAPSED_HEIGHT;
+    let targetHeightValue = '4.5rem';
+    let targetPaddingBottom = '1.5rem';
 
     if (infoOpen) {
       const currentHeight = contentEl.style.height;
       contentEl.style.height = 'auto';
-      targetHeight = `${contentEl.scrollHeight}px`;
+      targetHeightValue = `${contentEl.scrollHeight}px`;
+      targetPaddingBottom = '0rem';
       contentEl.style.height = currentHeight;
+    } else {
+      if (!contentEl.classList.contains('h-[4.5rem]')) {
+        contentEl.classList.add('h-[4.5rem]');
+      }
     }
 
-    // Animate height
     animate(
       contentEl,
       {
-        height: targetHeight,
-        paddingBottom: infoOpen ? '0rem' : '1.5rem',
+        height: targetHeightValue,
+        paddingBottom: targetPaddingBottom,
         duration: 500,
-        easing: 'easeOutCubic'
+        easing: 'easeOutCubic',
+        begin: () => {
+          if (infoOpen) {
+            contentEl.classList.remove('h-[4.5rem]');
+          }
+        },
+        complete: () => {
+          if (infoOpen) {
+            contentEl.style.height = 'auto';
+          } else {
+            if (!contentEl.classList.contains('h-[4.5rem]')) {
+              contentEl.classList.add('h-[4.5rem]');
+            }
+          }
+        }
       }
     );
 
-    // Animate fade overlay
     animate(
       fadeOverlayRef.current,
       {
@@ -235,158 +81,130 @@ export default function Home() {
   };
 
   return (
-    <div style={styles.container}>
-      <main style={styles.main}>
-        {/* Header */}
-        <div>
-          <h1 style={styles.heading}>
-            Hello, from<br />
-            Cluj-Napoca
-          </h1>
-          
-          {/* Expandable Info Section */}
-          <div 
-            style={styles.infoContainer}
-            onClick={toggleInfo} 
-          >
-            <div ref={infoContentRef} style={styles.infoContent}>
-              <div style={styles.infoContentText}>
-                <p>Cluj-Napoca is the second most populous city in Romania and the seat of Cluj County. Located in northwestern Romania, the city is situated approximately 450 kilometers from Bucharest.</p>
-                <br />
-                <p>The city is one of the most important academic, cultural, industrial and business centers in Romania. Home to the country's largest university, Babeș-Bolyai University, Cluj is also a major IT and innovation hub in Eastern Europe.</p>
-              </div>
-            </div>
-            <div ref={fadeOverlayRef} style={styles.fadeOverlay}></div>
-          </div>
-        </div>
-
-        {/* Categories Section */}
-        <div style={styles.sectionContainer}>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>Categories</h2>
-            <button 
-              onClick={openCategoriesSheet}
-              style={styles.viewAllButton}
-              className="hover:bg-gray-200 transition-colors duration-150"
+    <div className="min-h-screen bg-white text-gray-900 font-['Schibsted_Grotesk',_Arial,_sans-serif] p-8 flex flex-col items-center justify-center">
+      <div className="w-full max-w-lg">
+        <main className="flex flex-col gap-12">
+          <div>
+            <h1 className="text-3xl font-bold leading-tight mb-6">
+              Hello, from<br />
+              Cluj-Napoca
+            </h1>
+            
+            <div 
+              className="relative cursor-pointer"
+              onClick={toggleInfo} 
             >
-              <span>View all</span>
-            </button>
-          </div>
-          
-          <div style={styles.categoryGrid}>
-            {categories.map((category) => (
               <div 
-                key={category.slug} 
-                style={{
-                  ...styles.categoryCard,
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s ease',
-                  ...(hoveredCard === category.slug ? { transform: 'translateY(-5px)' } : {})
-                }}
-                onMouseEnter={() => setHoveredCard(category.slug)}
-                onMouseLeave={() => setHoveredCard(null)}
+                ref={infoContentRef} 
+                className={`overflow-hidden relative ${INITIAL_COLLAPSED_HEIGHT} pb-6`} 
               >
-                <ExamplePage 
-                  key={category.slug} 
-                  categoryData={{
-                    title: category.name,
-                    description: category.description,
-                    stats: category.stats,
-                    severity: category.severity,
-                    slug: category.slug
-                  }}
-                  issueContent={category.issues}
-                  imageUrls={category.images}
-                />
+                <div className="text-lg font-normal leading-relaxed text-gray-500 tracking-normal py-3 rounded-lg mb-2">
+                  <p>Cluj-Napoca is the second most populous city in Romania and the seat of Cluj County. Located in northwestern Romania, the city is situated approximately 450 kilometers from Bucharest.</p>
+                  <br />
+                  <p>The city is one of the most important academic, cultural, industrial and business centers in Romania. Home to the country's largest university, Babeș-Bolyai University, Cluj is also a major IT and innovation hub in Eastern Europe.</p>
+                </div>
               </div>
-            ))}
+              <div 
+                ref={fadeOverlayRef} 
+                className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none" 
+                style={{ opacity: 1 }}
+              ></div>
+            </div>
           </div>
-        </div>
 
-        {/* Info Section */}
-        <div style={styles.sectionContainer}>
-          <p style={styles.infoText}>
-            The official language is Romanian. Most educated people born after about 1970 will speak reasonably good English and will likely be proficient in
-          </p>
-          
-          <div style={styles.statsGrid}>
-            {/* Stats Card: Issues */}
-            <div style={styles.statsCard("#DBF24C")}>
-              <p style={styles.statValue}>40</p>
-              <p style={styles.statLabel}>issues</p>
+          <div className="mb-10">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">Categories</h2>
+              <button 
+                onClick={openCategoriesSheet}
+                className="bg-gray-100 rounded-full py-2 px-4 text-sm font-semibold tracking-wide hover:bg-gray-200 transition-colors duration-150"
+              >
+                <span>View all</span>
+              </button>
             </div>
             
-            {/* Stats Card: Response Time */}
-            <div style={styles.statsCard("#EFEFEF")}>
-              <p style={styles.statValue}>5s</p>
-              <p style={styles.statLabel}>avg response time</p>
-            </div>
-            
-            {/* Stats Card: Temperature */}
-            <div style={styles.statsCard("#EFEFEF")}>
-              <p style={styles.statValue}>25</p>
-              <p style={styles.statLabel}>degrees celsius</p>
-            </div>
-            
-            {/* Stats Card: Critical Problems */}
-            <div style={styles.statsCard("#FE7A71")}>
-              <p style={styles.statValue}>5</p>
-              <p style={styles.statLabel}>critical problems</p>
+            <div className="grid grid-cols-2 gap-5">
+              {categories.map((category) => (
+                <div 
+                  key={category.slug} 
+                  onClick={() => router.push(`/categories/${category.slug}`)}
+                  className={`relative rounded-2xl border border-gray-100 overflow-hidden aspect-square cursor-pointer transition-transform duration-200 ease-out ${hoveredCard === category.slug ? '-translate-y-1' : ''}`}
+                  onMouseEnter={() => setHoveredCard(category.slug)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                >
+                  <div className="w-full h-full bg-gray-50 flex items-center justify-center p-4">
+                    <span className="text-gray-400 font-medium text-center">{category.name}</span> 
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
 
-        {/* Issues Section */}
-        <div style={styles.sectionContainer}>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>Issues</h2>
-            <div style={styles.viewAllButton}>
-              <span>View all</span>
+          <div className="mb-10">
+            <p className="text-gray-500 text-base leading-relaxed tracking-normal mb-6">
+              The official language is Romanian. Most educated people born after about 1970 will speak reasonably good English and will likely be proficient in
+            </p>
+            
+            <div className="grid grid-cols-2 gap-5">
+              <div className="rounded-2xl p-4 bg-[#DBF24C] border border-lime-200">
+                <p className="text-3xl font-bold text-lime-900">40</p>
+                <p className="text-sm text-lime-800">issues</p>
+              </div>
+              
+              <div className="rounded-2xl p-4 bg-gray-100 border border-gray-200">
+                <p className="text-3xl font-bold">5s</p>
+                <p className="text-sm text-gray-600">avg response time</p>
+              </div>
+              
+              <div className="rounded-2xl p-4 bg-gray-100 border border-gray-200">
+                <p className="text-3xl font-bold">25</p>
+                <p className="text-sm text-gray-600">degrees celsius</p>
+              </div>
+              
+              <div className="rounded-2xl p-4 bg-[#FE7A71] border border-red-300">
+                <p className="text-3xl font-bold text-white">5</p>
+                <p className="text-sm text-red-100">critical problems</p>
+              </div>
             </div>
           </div>
-          
-          <div style={styles.issuesList}>
-            {/* Issue Card 1 */}
-            <div style={styles.issueCard}>
-              <p style={styles.issueText}>"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
+
+          <div className="mb-10">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">Issues</h2>
+              <div className="bg-gray-100 rounded-full py-2 px-4 text-sm font-semibold tracking-wide">
+                <span>View all</span>
+              </div>
             </div>
             
-            {/* Issue Card 2 */}
-            <div style={styles.issueCard}>
-              <p style={styles.issueText}>"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
-            </div>
-            
-            {/* Issue Card 3 */}
-            <div style={styles.issueCard}>
-              <p style={styles.issueText}>"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
-            </div>
-          </div>
-        </div>
-
-        {/* How to Use Section */}
-        <div style={styles.howToUseCard}>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>How to use?</h2>
-            <div style={styles.dotsContainer}>
-              <span style={styles.dot}>→</span>
-              <span style={styles.dot}>.</span>
-              <span style={styles.dot}>.</span>
-              <span style={styles.dot}>.</span>
-              <span style={styles.dot}>.</span>
+            <div className="flex flex-col gap-5">
+              <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
+                <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
+              </div>
+              
+              <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
+                <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
+              </div>
+              
+              <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
+                <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
+              </div>
             </div>
           </div>
-        </div>
-      </main>
 
-      <AnimatePresence mode="wait">
-        {sheetQuery === 'categories' && (
-          <motion.div
-             key="categories-sheet-wrapper"
-          >
-             <CategoriesSheetWrapper />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <div className="rounded-2xl p-8 bg-[#97B9FF] text-white mb-10 border border-blue-300">
+            <div className="flex justify-between items-center"> 
+              <h2 className="text-2xl font-semibold">How to use?</h2>
+              <div className="flex items-center gap-1.5">
+                <span className="text-2xl font-semibold">→</span> 
+                <span className="text-2xl font-semibold opacity-60">.</span>
+                <span className="text-2xl font-semibold opacity-40">.</span>
+                <span className="text-2xl font-semibold opacity-20">.</span>
+                <span className="text-2xl font-semibold opacity-10">.</span>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
