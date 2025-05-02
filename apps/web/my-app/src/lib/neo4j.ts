@@ -4,9 +4,9 @@ let driver: Driver | undefined;
 
 function getDriver(): Driver {
   if (!driver) {
-    const uri = process.env.NEO4J_URI;
-    const user = process.env.NEO4J_USERNAME;
-    const password = process.env.NEO4J_PASSWORD;
+    const uri = "neo4j+s://edcd5f68.databases.neo4j.io"
+    const user = "neo4j"
+    const password = "BtPlV_hKS_jh5twL-bqIBHRDct3dkMK00XrOqoNHVhg"
 
     if (!uri || !user || !password) {
       throw new Error('Missing Neo4j connection details in environment variables (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)');

@@ -2,29 +2,71 @@
 import React, { Component } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { CSSProperties, useState, useEffect, useRef } from "react";
-import { useRouter } from 'next/navigation';
-
+import { useRouter, useParams } from 'next/navigation';
+import { fetchCategories } from '@/lib/neo4j-queries';
+import { Category as CategoryType } from '@/lib/neo4j-schema';
 
 // create a component
 const Category = () => {
-
     const router = useRouter();
+    const params = useParams();
+    const slug = params?.slug as string;
+    
     // State and refs for image visibility
     const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
     const [imageDataList, setImageDataList] = useState<any[]>([]); // State for client-side data
-
-    // Dummy data for the component (keep static parts)
-    const categoryData = {
-        title: "Potholes",
-        description: "Dangerous road conditions reported across the city",
+    const [categoryData, setCategoryData] = useState({
+        title: "",
+        description: "",
         stats: {
-        reported: 42,
-        solved: 18,
-        resolution: "5d"
+            reported: 0,
+            solved: 0,
+            resolution: "0d"
         },
-        severity: "high",
-        slug: "potholes"
-    };
+        severity: "medium",
+        slug: ""
+    });
+    
+    // Fetch category data from Neo4j based on slug
+    useEffect(() => {
+        const fetchCategoryData = async () => {
+            try {
+                console.log("Fetching category data for slug:", slug);
+                if (!slug) return;
+                
+                // Fetch all categories (since we don't have a direct fetchCategoryBySlug function)
+                const categories = await fetchCategories();
+
+                console.log("Categories:", categories);
+                
+                // Find category by matching slug with name (converted to lowercase and hyphenated)
+                const category = categories.find((cat: CategoryType) => {
+                    // Convert category name to slug format (lowercase, hyphenated)
+                    const catSlug = cat.name?.toLowerCase().replace(/\s+/g, '-') || '';
+                    return catSlug === slug;
+                });
+                
+                if (category) {
+                    setCategoryData({
+                        title: category.name || "",
+                        description: category.description || "",
+                        stats: {
+                            reported: 42, // Placeholder stats (would come from real data in production)
+                            solved: 18,
+                            resolution: "5d"
+                        },
+                        severity: "high", // This could be derived from actual data
+                        slug: slug
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching category data:", error);
+                // Fallback to default data if fetch fails
+            }
+        };
+        
+        fetchCategoryData();
+    }, [slug]);
 
     const baseIssueContent = [
         "Large pothole on Main Street",
@@ -81,8 +123,7 @@ const Category = () => {
             };
         });
         setImageDataList(generatedData);
-    }, []); // Empty dependency array ensures this runs only once on client mount
-
+    }, [categoryData.slug]); // Update when slug changes
 
     // renderImageGrid function using client-side state
     const renderImageGrid = () => {
