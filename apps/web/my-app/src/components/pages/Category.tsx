@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { CSSProperties, useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from 'next/navigation';
-import { fetchCategories, fetchDetectionEventsByCategory } from '@/lib/neo4j-queries';
+import { fetchCategories, fetchDetectionEventsByCategory, fetchPhotosWithDetectionEvents } from '@/lib/neo4j-queries';
 import { Category as CategoryType, DetectionEvent } from '@/lib/neo4j-schema';
 
 // create a component
@@ -14,8 +14,9 @@ const Category = () => {
     
     // State and refs for image visibility
     const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
-    const [imageDataList, setImageDataList] = useState<any[]>([]); // State for client-side data
+    const [imageDataList, setImageDataList] = useState<any[]>([]);
     const [detectionEvents, setDetectionEvents] = useState<DetectionEvent[]>([]);
+    const [photosWithEvents, setPhotosWithEvents] = useState<any[]>([]);
     const [categoryData, setCategoryData] = useState({
         title: "",
         description: "",
@@ -69,29 +70,65 @@ const Category = () => {
         fetchCategoryData();
     }, [slug]);
 
-    // Fetch detection events for the category
+    // Fetch photos with detection events for the category
     useEffect(() => {
-        const fetchEvents = async () => {
+        const fetchPhotosAndEvents = async () => {
             try {
                 if (!slug) return;
                 
+                const photosAndEvents = await fetchPhotosWithDetectionEvents(slug);
+                console.log("Photos with detection events for category:", photosAndEvents);
+                setPhotosWithEvents(photosAndEvents);
+                
+                // Also fetch standalone detection events as a fallback
                 const events = await fetchDetectionEventsByCategory(slug);
                 console.log("Detection events for category:", events);
                 setDetectionEvents(events);
             } catch (error) {
-                console.error("Error fetching detection events:", error);
+                console.error("Error fetching photos and detection events:", error);
             }
         };
         
-        fetchEvents();
+        fetchPhotosAndEvents();
     }, [slug]);
 
-    // Generate image data from detection events
+    // Generate image data from photos and detection events
     useEffect(() => {
-        if (detectionEvents.length === 0) {
-            // Fallback to mock data if no events
-            generateMockData();
-        } else {
+        if (photosWithEvents.length > 0) {
+            // Map photos with detection events to image data format
+            const generatedData = photosWithEvents.map((item, index) => {
+                const { photo, event } = item;
+                
+                return {
+                    id: index + 1,
+                    imageUrl: photo.url || `/images/${categoryData.slug}${index + 1}.jpg`, // Use photo URL or fallback
+                    issueText: event.name || `${categoryData.title} issue ${index + 1}`,
+                    name: event.name || `${categoryData.title} image ${index + 1}`,
+                    handle: `event_${event.event_id}`,
+                    followers: Math.floor(Math.random() * 1000),
+                    following: Math.floor(Math.random() * 500),
+                    posts: Math.floor(Math.random() * 100),
+                    bio: event.description || `This is ${categoryData.title} detection event description`,
+                    daysAgo: Math.floor(Math.random() * 10) + 1, // Could be calculated from reported_at
+                    reportsCount: Math.floor(Math.random() * 15) + 1,
+                    severity: event.severity || 'medium',
+                    eventId: event.event_id,
+                    content: [
+                        {
+                            username: event.name || `${categoryData.title} image ${index + 1}`,
+                            handle: `event_${event.event_id}`,
+                            hoursPast: Math.floor(Math.random() * 24),
+                            content: [event.description || `Details about ${categoryData.title} detection event`],
+                            commentsCount: Math.floor(Math.random() * 50),
+                            sharesCount: Math.floor(Math.random() * 30),
+                            likesCount: Math.floor(Math.random() * 100)
+                        }
+                    ]
+                };
+            });
+            setImageDataList(generatedData);
+        } else if (detectionEvents.length > 0) {
+            // Fallback to detection events if no photos are available
             // Map detection events to image data format
             const generatedData = detectionEvents.map((event, index) => {
                 const imageUrl = `/images/${categoryData.slug}${index + 1}.jpg`; // Fallback image
@@ -124,8 +161,11 @@ const Category = () => {
                 };
             });
             setImageDataList(generatedData);
+        } else {
+            // Fallback to mock data if no events
+            generateMockData();
         }
-    }, [detectionEvents, categoryData]);
+    }, [photosWithEvents, detectionEvents, categoryData]);
 
     // Fallback mock data generator
     const generateMockData = () => {

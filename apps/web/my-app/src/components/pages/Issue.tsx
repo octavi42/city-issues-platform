@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { MessageSquare, Calendar, MapPin, AlertTriangle, ChevronDown, X } from "lucide-react";
-import { fetchDetectionEventById } from "@/lib/neo4j-queries";
+import { fetchDetectionEventById, fetchPhotoByEventId } from "@/lib/neo4j-queries";
 import { DetectionEvent } from "@/lib/neo4j-schema";
 import { format } from "date-fns";
 
@@ -44,6 +44,7 @@ const Issue = () => {
     const mountedRef = useRef(false);
     const [loading, setLoading] = useState(true);
     const [eventData, setEventData] = useState<DetectionEvent | null>(null);
+    const [photoData, setPhotoData] = useState<any>(null);
     const [issueData, setIssueData] = useState({
       name: "Loading...",
       description: "",
@@ -74,7 +75,7 @@ const Issue = () => {
       };
     }, []);
     
-    // Fetch detection event data
+    // Fetch detection event data and associated photo
     useEffect(() => {
       const fetchEventData = async () => {
         try {
@@ -87,8 +88,14 @@ const Issue = () => {
             return;
           }
           
+          // Fetch the event data
           const event = await fetchDetectionEventById(eventId);
           console.log("Fetched event:", event);
+          
+          // Fetch the associated photo
+          const photo = await fetchPhotoByEventId(eventId);
+          console.log("Fetched photo:", photo);
+          setPhotoData(photo);
           
           if (event) {
             setEventData(event);
@@ -107,7 +114,7 @@ const Issue = () => {
             setIssueData({
               name: event.name || "Untitled Issue",
               description: event.description || "No description provided for this issue.",
-              imageUrl: `/images/${eventId}.jpg`, // Placeholder - would come from the Photo relationship in production
+              imageUrl: photo?.url || `/images/${eventId}.jpg`, // Use photo URL if available, otherwise fallback
               severity: event.severity || "medium",
               date: formattedDate,
               location: "From database", // Would come from a location relationship in real implementation
@@ -257,6 +264,17 @@ const Issue = () => {
                           <span>Event ID</span>
                         </div>
                         <span className="text-base font-medium">{eventData.event_id}</span>
+                      </div>
+                    )}
+                    
+                    {/* Photo ID (if available) */}
+                    {photoData && photoData.photo_id && (
+                      <div className="flex items-center justify-between h-10">
+                        <div className="flex items-center gap-4 text-base text-gray-600">
+                          <span className="h-5 w-5 flex items-center justify-center">📷</span>
+                          <span>Photo ID</span>
+                        </div>
+                        <span className="text-base font-medium">{photoData.photo_id}</span>
                       </div>
                     )}
                     </div>
