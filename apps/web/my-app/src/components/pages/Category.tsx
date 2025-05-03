@@ -3,8 +3,8 @@ import React, { Component } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { CSSProperties, useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from 'next/navigation';
-import { fetchCategories } from '@/lib/neo4j-queries';
-import { Category as CategoryType } from '@/lib/neo4j-schema';
+import { fetchCategories, fetchDetectionEventsByCategory } from '@/lib/neo4j-queries';
+import { Category as CategoryType, DetectionEvent } from '@/lib/neo4j-schema';
 
 // create a component
 const Category = () => {
@@ -15,6 +15,7 @@ const Category = () => {
     // State and refs for image visibility
     const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
     const [imageDataList, setImageDataList] = useState<any[]>([]); // State for client-side data
+    const [detectionEvents, setDetectionEvents] = useState<DetectionEvent[]>([]);
     const [categoryData, setCategoryData] = useState({
         title: "",
         description: "",
@@ -68,30 +69,88 @@ const Category = () => {
         fetchCategoryData();
     }, [slug]);
 
-    const baseIssueContent = [
-        "Large pothole on Main Street",
-        "Dangerous crater on 5th Avenue",
-        "Multiple potholes near school zone",
-        "Deep pothole causing accidents",
-        "Road damage after recent storm",
-        "Pothole needs urgent repair",
-        "Growing pothole on busy intersection",
-        "Multiple tire damages reported"
-    ];
-
-    const baseImageUrls = [
-        "/images/pothole1.jpg",
-        "/images/pothole2.jpg",
-        "/images/pothole3.jpg",
-        "/images/pothole4.jpg",
-        "/images/pothole5.jpg",
-        "/images/pothole6.jpg",
-        "/images/pothole7.jpg",
-        "/images/pothole8.jpg"
-    ];
-
-    // Generate dynamic data only on the client
+    // Fetch detection events for the category
     useEffect(() => {
+        const fetchEvents = async () => {
+            try {
+                if (!slug) return;
+                
+                const events = await fetchDetectionEventsByCategory(slug);
+                console.log("Detection events for category:", events);
+                setDetectionEvents(events);
+            } catch (error) {
+                console.error("Error fetching detection events:", error);
+            }
+        };
+        
+        fetchEvents();
+    }, [slug]);
+
+    // Generate image data from detection events
+    useEffect(() => {
+        if (detectionEvents.length === 0) {
+            // Fallback to mock data if no events
+            generateMockData();
+        } else {
+            // Map detection events to image data format
+            const generatedData = detectionEvents.map((event, index) => {
+                const imageUrl = `/images/${categoryData.slug}${index + 1}.jpg`; // Fallback image
+                
+                return {
+                    id: index + 1,
+                    imageUrl: imageUrl,
+                    issueText: event.name || `${categoryData.title} issue ${index + 1}`,
+                    name: event.name || `${categoryData.title} image ${index + 1}`,
+                    handle: `event_${event.event_id}`,
+                    followers: Math.floor(Math.random() * 1000),
+                    following: Math.floor(Math.random() * 500),
+                    posts: Math.floor(Math.random() * 100),
+                    bio: event.description || `This is ${categoryData.title} detection event description`,
+                    daysAgo: Math.floor(Math.random() * 10) + 1, // Could be calculated from reported_at
+                    reportsCount: Math.floor(Math.random() * 15) + 1,
+                    severity: event.severity || 'medium',
+                    eventId: event.event_id,
+                    content: [
+                        {
+                            username: event.name || `${categoryData.title} image ${index + 1}`,
+                            handle: `event_${event.event_id}`,
+                            hoursPast: Math.floor(Math.random() * 24),
+                            content: [event.description || `Details about ${categoryData.title} detection event`],
+                            commentsCount: Math.floor(Math.random() * 50),
+                            sharesCount: Math.floor(Math.random() * 30),
+                            likesCount: Math.floor(Math.random() * 100)
+                        }
+                    ]
+                };
+            });
+            setImageDataList(generatedData);
+        }
+    }, [detectionEvents, categoryData]);
+
+    // Fallback mock data generator
+    const generateMockData = () => {
+        const baseIssueContent = [
+            "Large pothole on Main Street",
+            "Dangerous crater on 5th Avenue",
+            "Multiple potholes near school zone",
+            "Deep pothole causing accidents",
+            "Road damage after recent storm",
+            "Pothole needs urgent repair",
+            "Growing pothole on busy intersection",
+            "Multiple tire damages reported"
+        ];
+
+        const baseImageUrls = [
+            "/images/pothole1.jpg",
+            "/images/pothole2.jpg",
+            "/images/pothole3.jpg",
+            "/images/pothole4.jpg",
+            "/images/pothole5.jpg",
+            "/images/pothole6.jpg",
+            "/images/pothole7.jpg",
+            "/images/pothole8.jpg"
+        ];
+
         const issues = baseIssueContent.length > 0 ? baseIssueContent : [];
         const images = baseImageUrls.length > 0 ? baseImageUrls : Array(8).fill(categoryData.slug ? `/images/${categoryData.slug}.jpg` : '');
 
@@ -123,7 +182,7 @@ const Category = () => {
             };
         });
         setImageDataList(generatedData);
-    }, [categoryData.slug]); // Update when slug changes
+    };
 
     // renderImageGrid function using client-side state
     const renderImageGrid = () => {
@@ -152,7 +211,9 @@ const Category = () => {
                             <div 
                                 className="cursor-pointer rounded-[1.875rem] overflow-hidden bg-[#F7F7F7] w-full"
                                 onClick={() => {
-                                    router.push(`/issue/issue-${imageData.id.toString()}`);
+                                    // Use eventId if available, otherwise use generated id
+                                    const issueId = imageData.eventId || `issue-${imageData.id.toString()}`;
+                                    router.push(`/issue/${issueId}`);
                                 }}
                             >
                                 <img 
@@ -162,7 +223,7 @@ const Category = () => {
                                 />
                                 <div className="overlay p-3">
                                     <div className="title font-bold">
-                                        {imageData.issueText || `${categoryData.slug} ${imageData.id}`}
+                                        {imageData.issueText}
                                     </div>
                                     <div className="meta text-sm text-gray-600">
                                         {imageData.daysAgo}d ago · {imageData.reportsCount} reports
@@ -188,7 +249,9 @@ const Category = () => {
                             <div 
                                 className="cursor-pointer rounded-[1.875rem] overflow-hidden bg-[#F7F7F7] w-full"
                                 onClick={() => {
-                                    router.push(`/issue/issue-${imageData.id.toString()}`);
+                                    // Use eventId if available, otherwise use generated id
+                                    const issueId = imageData.eventId || `issue-${imageData.id.toString()}`;
+                                    router.push(`/issue/${issueId}`);
                                 }}
                             >
                                 <img 
@@ -198,7 +261,7 @@ const Category = () => {
                                 />
                                 <div className="overlay p-3">
                                     <div className="title font-bold">
-                                        {imageData.issueText || `${categoryData.slug} ${imageData.id}`}
+                                        {imageData.issueText}
                                     </div>
                                     <div className="meta text-sm text-gray-600">
                                         {imageData.daysAgo}d ago · {imageData.reportsCount} reports

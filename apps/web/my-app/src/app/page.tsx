@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { animate } from 'animejs';
 import ExamplePage from "@/components/examples/Page/ExamplePage";
-import { categories } from '@/data/categories';
+import { categories as staticCategories } from '@/data/categories';
+import { fetchCategories } from '@/lib/neo4j-queries';
+import { Category } from '@/lib/neo4j-schema';
+import { Skeleton } from "@/components/ui/skeleton";
 
 const INITIAL_COLLAPSED_HEIGHT = 'h-[4.5rem]';
 
@@ -17,6 +20,58 @@ export default function Home() {
   const infoContentRef = useRef<HTMLDivElement>(null);
   const fadeOverlayRef = useRef<HTMLDivElement>(null);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch categories from Neo4j
+  useEffect(() => {
+    const getCategories = async () => {
+      try {
+        setIsLoading(true);
+        // Intentionally wrapping the call in a try/catch to handle server-side errors
+        // like missing env variables gracefully
+        try {
+          const fetchedCategories = await fetchCategories();
+          setCategories(fetchedCategories);
+        } catch (err) {
+          console.error("Failed to fetch categories from Neo4j:", err);
+          // Fallback to static categories to avoid breaking the UI
+          setCategories(staticCategories.map(cat => ({
+            category_id: cat.slug,
+            name: cat.name,
+            description: cat.description || '',
+          })));
+        }
+      } catch (err) {
+        setError("Failed to load categories");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getCategories();
+  }, []);
+
+  // Memoize random categories to prevent re-shuffling on hover
+  const randomCategories = useMemo(() => {
+    if (categories.length === 0) return [];
+    
+    // Make a copy to avoid modifying the original array
+    const categoriesCopy = [...categories];
+    const result = [];
+    
+    // Get up to 4 categories randomly
+    const numToSelect = Math.min(4, categoriesCopy.length);
+    
+    for (let i = 0; i < numToSelect; i++) {
+      const randomIndex = Math.floor(Math.random() * categoriesCopy.length);
+      result.push(categoriesCopy.splice(randomIndex, 1)[0]);
+    }
+    
+    return result;
+  }, [categories]); // Only recalculate when categories array changes
 
   const toggleInfo = () => {
     setInfoOpen(!infoOpen);
@@ -148,19 +203,46 @@ export default function Home() {
             </div>
             
             <div className="grid grid-cols-2 gap-5">
-              {categories.map((category) => (
-                <div 
-                  key={category.slug} 
-                  onClick={() => router.push(`/categories/${category.slug}`)}
-                  className={`relative rounded-2xl border border-gray-100 overflow-hidden aspect-square cursor-pointer transition-transform duration-200 ease-out ${hoveredCard === category.slug ? '-translate-y-1' : ''}`}
-                  onMouseEnter={() => setHoveredCard(category.slug)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                >
-                  <div className="w-full h-full bg-gray-50 flex items-center justify-center p-4">
-                    <span className="text-gray-400 font-medium text-center">{category.name}</span> 
-                  </div>
+              {isLoading ? (
+                // Shadcn UI Skeleton components for loading state
+                Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton 
+                    key={`skeleton-${index}`}
+                    className="aspect-square rounded-2xl border border-gray-50"
+                  >
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Skeleton className="w-2/3 h-6" />
+                    </div>
+                  </Skeleton>
+                ))
+              ) : error ? (
+                <div className="col-span-2 p-4 text-red-500">
+                  {error}
                 </div>
-              ))}
+              ) : randomCategories.length > 0 ? (
+                randomCategories.map((category) => {
+                  // Create slug from category name
+                  const slug = category.name?.toLowerCase().replace(/\s+/g, '-') || category.category_id;
+                  
+                  return (
+                    <div 
+                      key={category.category_id} 
+                      onClick={() => router.push(`/categories/${slug}`)}
+                      className={`relative rounded-2xl border border-gray-100 overflow-hidden aspect-square cursor-pointer transition-transform duration-200 ease-out ${hoveredCard === category.category_id ? '-translate-y-1' : ''}`}
+                      onMouseEnter={() => setHoveredCard(category.category_id)}
+                      onMouseLeave={() => setHoveredCard(null)}
+                    >
+                      <div className="w-full h-full bg-gray-50 flex items-center justify-center p-4">
+                        <span className="text-gray-400 font-medium text-center">{category.name}</span> 
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="col-span-2 p-4 text-gray-500">
+                  No categories found
+                </div>
+              )}
             </div>
           </div>
 
@@ -173,17 +255,32 @@ export default function Home() {
             </div>
             
             <div className="flex flex-col gap-5">
-              <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
-                <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
-              </div>
-              
-              <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
-                <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
-              </div>
-              
-              <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
-                <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
-              </div>
+              {isLoading ? (
+                // Shadcn UI Skeleton components for loading state
+                Array.from({ length: 3 }).map((_, index) => (
+                  <Skeleton 
+                    key={`issue-skeleton-${index}`}
+                    className="h-24 rounded-2xl p-6"
+                  >
+                    <Skeleton className="w-4/5 h-5 mb-2" />
+                    <Skeleton className="w-3/5 h-5" />
+                  </Skeleton>
+                ))
+              ) : (
+                <>
+                  <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
+                    <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
+                  </div>
+                  
+                  <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
+                    <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
+                  </div>
+                  
+                  <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
+                    <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

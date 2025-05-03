@@ -1,6 +1,6 @@
 // Service functions to fetch Neo4j data using the generic Neo4j client utilities
 
-import { getNodes, getNodeByKey } from './neo4j';
+import { getNodes, getNodeByKey, runQuery } from './neo4j';
 import {
   User,
   Analyzer,
@@ -38,6 +38,19 @@ export async function fetchDetectionEvents(): Promise<DetectionEvent[]> {
 /** Fetch a single DetectionEvent by its unique event_id */
 export async function fetchDetectionEventById(eventId: string): Promise<DetectionEvent | null> {
   return getNodeByKey<DetectionEvent>('DetectionEvent', 'event_id', eventId);
+}
+
+/** Fetch detection events by category slug (converts slug to name for query) */
+export async function fetchDetectionEventsByCategory(categorySlug: string): Promise<DetectionEvent[]> {
+  // Cypher query to find detection events related to a category by slug
+  const cypher = `
+    MATCH (e:DetectionEvent)-[:IN_CATEGORY]->(c:Category)
+    WHERE toLower(replace(c.name, ' ', '-')) = $categorySlug
+    RETURN properties(e) AS node
+  `;
+  
+  const results = await runQuery<{ node: DetectionEvent }>(cypher, { categorySlug });
+  return results.map(r => r.node);
 }
 
 /** Fetch all Category nodes */

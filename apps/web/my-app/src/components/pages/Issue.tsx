@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { MessageSquare, Calendar, MapPin, AlertTriangle, ChevronDown, X } from "lucide-react";
+import { fetchDetectionEventById } from "@/lib/neo4j-queries";
+import { DetectionEvent } from "@/lib/neo4j-schema";
+import { format } from "date-fns";
 
 interface ExampleSheetWithStackingProps {
   data: any;
@@ -34,11 +37,31 @@ const sampleComments = [
 ];
 
 
-const Issue = ({ data }: any) => {
+const Issue = () => {
     const router = useRouter();
     const pathname = usePathname();
     const [isReady, setIsReady] = useState(false);
     const mountedRef = useRef(false);
+    const [loading, setLoading] = useState(true);
+    const [eventData, setEventData] = useState<DetectionEvent | null>(null);
+    const [issueData, setIssueData] = useState({
+      name: "Loading...",
+      description: "",
+      imageUrl: "",
+      severity: "medium",
+      date: "Today",
+      location: "Unknown",
+      user: "Anonymous",
+      suggestions: [],
+      comments: []
+    });
+    
+    // Extract event ID from the path
+    const getEventIdFromPath = () => {
+      // Extract the last part of the path (after the last slash)
+      const pathParts = pathname.split('/');
+      return pathParts[pathParts.length - 1];
+    };
     
     // Ensure component is mounted before animations run
     useEffect(() => {
@@ -50,6 +73,58 @@ const Issue = ({ data }: any) => {
         mountedRef.current = false;
       };
     }, []);
+    
+    // Fetch detection event data
+    useEffect(() => {
+      const fetchEventData = async () => {
+        try {
+          const eventId = getEventIdFromPath();
+          console.log("Fetching event data for ID:", eventId);
+          
+          // Skip fetch if ID is clearly not a valid event ID (like "issue-1")
+          if (eventId.startsWith("issue-")) {
+            setLoading(false);
+            return;
+          }
+          
+          const event = await fetchDetectionEventById(eventId);
+          console.log("Fetched event:", event);
+          
+          if (event) {
+            setEventData(event);
+            
+            // Format the date if available
+            let formattedDate = "Today";
+            if (event.reported_at) {
+              try {
+                formattedDate = format(new Date(event.reported_at), 'MMM d, yyyy');
+              } catch (e) {
+                console.error("Error formatting date:", e);
+              }
+            }
+            
+            // Map event data to issue display format
+            setIssueData({
+              name: event.name || "Untitled Issue",
+              description: event.description || "No description provided for this issue.",
+              imageUrl: `/images/${eventId}.jpg`, // Placeholder - would come from the Photo relationship in production
+              severity: event.severity || "medium",
+              date: formattedDate,
+              location: "From database", // Would come from a location relationship in real implementation
+              user: "Reporter", // Would come from the REPORTED_BY relationship
+              suggestions: [],
+              comments: []
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching event data:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchEventData();
+    }, [pathname]);
     
     const travelStatusChangeHandler = useCallback((travelStatus: string) => {
       if (!mountedRef.current || !isReady) return;
@@ -82,158 +157,178 @@ const Issue = ({ data }: any) => {
     };
   
     // Use provided comments or sample comments
-    const comments = data.comments?.length > 0 ? data.comments : sampleComments;
+    const comments = issueData.comments?.length > 0 ? issueData.comments : sampleComments;
   
     return (
       <div className="relative h-full overflow-auto">
-            {/* Header image - scrolls with content */}
-            <div className="w-full aspect-[3/2] bg-gray-50 mb-16 z-[100]">
-            <img 
-                src={data.imageUrl || "https://placehold.co/600x400/e6e6e6/a6a6a6?text=Issue+Image"} 
-                alt={data.name} 
-                className="w-full h-full object-cover"
-            />
-            </div>
-            
-            {/* Main content with distinct spacing between sections */}
-            <div className="px-8 md:px-10">
-            {/* Sticky title bar with close button */}
-            <div className="sticky top-0 z-[51] flex items-center justify-between py-6 bg-white/90 backdrop-blur-sm mb-20">
-                <h2 className="text-2xl font-bold tracking-tight text-gray-900">{data.name}</h2>
-                <Sheet.Trigger 
-                action="dismiss"
-                onClick={() => {
-                    // Calculate parent path (remove the last segment)
-                    const parentPath = pathname.substring(0, pathname.lastIndexOf('/'));
-                    router.replace(parentPath); // Replace state instead of pushing
-                }}
-                className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                >
-                <X className="h-4 w-4 text-gray-700" />
-                </Sheet.Trigger>
-            </div>
-            
-            {/* Invisible spacer - no longer need the pt-4 from the old title div */}
-            <div className="h-8 mb-28"></div>
-            
-            {/* 2. DESCRIPTION COMPONENT */}
-            <div className="mb-28">
-                <p className="text-lg text-gray-600 leading-relaxed">
-                {data.description || "No description provided for this issue."}
-                </p>
-            </div>
-            
-            {/* Invisible spacer */}
-            <div className="h-8 mb-28"></div>
-            
-            {/* 3. DETAILS COMPONENT */}
-            <div className="mb-28">
-                <h3 className="text-xl font-medium text-gray-900 pb-3">Issue Details</h3>
-                <div className="bg-gray-50 rounded-2xl p-4">
-                {/* Severity */}
-                <div className="flex items-center justify-between h-10">
-                    <div className="flex items-center gap-4 text-base text-gray-600">
-                    <AlertTriangle className="h-5 w-5" />
-                    <span>Severity</span>
-                    </div>
-                    <Badge className={`text-sm py-1.5 px-4 border ${getSeverityColor(data.severity || 'medium')}`}>
-                    {data.severity || 'Medium'}
-                    </Badge>
+            {loading ? (
+              <div className="flex justify-center items-center h-full">
+                <div className="text-lg">Loading...</div>
+              </div>
+            ) : (
+              <>
+                {/* Header image - scrolls with content */}
+                <div className="w-full aspect-[3/2] bg-gray-50 mb-16 z-[100]">
+                <img 
+                    src={issueData.imageUrl || "https://placehold.co/600x400/e6e6e6/a6a6a6?text=Issue+Image"} 
+                    alt={issueData.name} 
+                    className="w-full h-full object-cover"
+                />
                 </div>
                 
-                {/* Date */}
-                <div className="flex items-center justify-between h-10">
-                    <div className="flex items-center gap-4 text-base text-gray-600">
-                    <Calendar className="h-5 w-5" />
-                    <span>Reported on</span>
-                    </div>
-                    <span className="text-base font-medium">{data.date || 'Today'}</span>
+                {/* Main content with distinct spacing between sections */}
+                <div className="px-8 md:px-10">
+                {/* Sticky title bar with close button */}
+                <div className="sticky top-0 z-[51] flex items-center justify-between py-6 bg-white/90 backdrop-blur-sm mb-20">
+                    <h2 className="text-2xl font-bold tracking-tight text-gray-900">{issueData.name}</h2>
+                    <Sheet.Trigger 
+                    action="dismiss"
+                    onClick={() => {
+                        // Calculate parent path (remove the last segment)
+                        // const parentPath = pathname.substring(0, pathname.lastIndexOf('/'));
+                        router.replace(`/categories/flooding`); // Replace state instead of pushing
+                    }}
+                    className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                    >
+                    <X className="h-4 w-4 text-gray-700" />
+                    </Sheet.Trigger>
                 </div>
                 
-                {/* Location */}
-                <div className="flex items-center justify-between h-10">
-                    <div className="flex items-center gap-4 text-base text-gray-600">
-                    <MapPin className="h-5 w-5" />
-                    <span>Location</span>
-                    </div>
-                    <span className="text-base font-medium">{data.location || 'Unknown'}</span>
+                {/* Invisible spacer - no longer need the pt-4 from the old title div */}
+                <div className="h-8 mb-28"></div>
+                
+                {/* 2. DESCRIPTION COMPONENT */}
+                <div className="mb-28">
+                    <p className="text-lg text-gray-600 leading-relaxed">
+                    {issueData.description}
+                    </p>
                 </div>
                 
-                {/* Reporter */}
-                <div className="flex items-center justify-between h-10">
-                    <div className="flex items-center gap-4 text-base text-gray-600">
-                    <Avatar className="h-5 w-5" />
-                    <span>Reported by</span>
+                {/* Invisible spacer */}
+                <div className="h-8 mb-28"></div>
+                
+                {/* 3. DETAILS COMPONENT */}
+                <div className="mb-28">
+                    <h3 className="text-xl font-medium text-gray-900 pb-3">Issue Details</h3>
+                    <div className="bg-gray-50 rounded-2xl p-4">
+                    {/* Severity */}
+                    <div className="flex items-center justify-between h-10">
+                        <div className="flex items-center gap-4 text-base text-gray-600">
+                        <AlertTriangle className="h-5 w-5" />
+                        <span>Severity</span>
+                        </div>
+                        <Badge className={`text-sm py-1.5 px-4 border ${getSeverityColor(issueData.severity)}`}>
+                        {issueData.severity.charAt(0).toUpperCase() + issueData.severity.slice(1)}
+                        </Badge>
                     </div>
-                    <span className="text-base font-medium">{data.user || 'Anonymous'}</span>
-                </div>
-                </div>
-            </div>
-            
-            {/* Invisible spacer */}
-            <div className="h-8 mb-28"></div>
-            
-            {/* 4. SUGGESTIONS COMPONENT */}
-            <div className="mb-28">
-                <h3 className="text-xl font-medium text-gray-900 pb-3">Suggestions</h3>
-                <div className="bg-gray-50 rounded-2xl p-4">
-                <ul className="space-y-5 list-disc text-base text-gray-600 pl-6">
-                    {data.suggestions?.map((suggestion: string, i: number) => (
-                    <li key={i} className="leading-relaxed py-1">{suggestion}</li>
-                    )) || (
-                    <>
-                        <li className="leading-relaxed py-1">Contact local maintenance team</li>
-                        <li className="leading-relaxed py-1">Take photos of the area for documentation</li>
-                        <li className="leading-relaxed py-1">Avoid the area until resolved</li>
-                    </>
+                    
+                    {/* Date */}
+                    <div className="flex items-center justify-between h-10">
+                        <div className="flex items-center gap-4 text-base text-gray-600">
+                        <Calendar className="h-5 w-5" />
+                        <span>Reported on</span>
+                        </div>
+                        <span className="text-base font-medium">{issueData.date}</span>
+                    </div>
+                    
+                    {/* Location */}
+                    <div className="flex items-center justify-between h-10">
+                        <div className="flex items-center gap-4 text-base text-gray-600">
+                        <MapPin className="h-5 w-5" />
+                        <span>Location</span>
+                        </div>
+                        <span className="text-base font-medium">{issueData.location}</span>
+                    </div>
+                    
+                    {/* Reporter */}
+                    <div className="flex items-center justify-between h-10">
+                        <div className="flex items-center gap-4 text-base text-gray-600">
+                        <Avatar className="h-5 w-5" />
+                        <span>Reported by</span>
+                        </div>
+                        <span className="text-base font-medium">{issueData.user}</span>
+                    </div>
+                    
+                    {/* Event ID (if available) */}
+                    {eventData && (
+                      <div className="flex items-center justify-between h-10">
+                        <div className="flex items-center gap-4 text-base text-gray-600">
+                          <span className="h-5 w-5 flex items-center justify-center">#</span>
+                          <span>Event ID</span>
+                        </div>
+                        <span className="text-base font-medium">{eventData.event_id}</span>
+                      </div>
                     )}
-                </ul>
+                    </div>
                 </div>
-            </div>
-            
-            {/* Invisible spacer */}
-            <div className="h-8 mb-28"></div>
-            
-            {/* 5. COMMENTS COMPONENT */}
-            <div className="mb-28">
-                <h3 className="text-xl font-medium text-gray-900 pb-3">Comments</h3>
                 
-                {/* Comments list */}
-                <div className="space-y-5 pb-3">
-                {comments.map((comment: any, i: number) => (
-                    <div key={i} className="p-1">
-                    <div className="bg-gray-50 rounded-xl p-2">
-                        <div className="flex items-center justify-between pb-3">
-                        <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                            <div className="bg-blue-50 text-blue-700 w-full h-full flex items-center justify-center text-xs font-bold">
-                                {comment.user?.charAt(0) || 'U'}
+                {/* Invisible spacer */}
+                <div className="h-8 mb-28"></div>
+                
+                {/* 4. SUGGESTIONS COMPONENT */}
+                <div className="mb-28">
+                    <h3 className="text-xl font-medium text-gray-900 pb-3">Suggestions</h3>
+                    <div className="bg-gray-50 rounded-2xl p-4">
+                    <ul className="space-y-5 list-disc text-base text-gray-600 pl-6">
+                        {issueData.suggestions?.length > 0 ? (
+                          issueData.suggestions.map((suggestion: string, i: number) => (
+                            <li key={i} className="leading-relaxed py-1">{suggestion}</li>
+                          ))
+                        ) : (
+                          <>
+                            <li className="leading-relaxed py-1">Contact local maintenance team</li>
+                            <li className="leading-relaxed py-1">Take photos of the area for documentation</li>
+                            <li className="leading-relaxed py-1">Avoid the area until resolved</li>
+                          </>
+                        )}
+                    </ul>
+                    </div>
+                </div>
+                
+                {/* Invisible spacer */}
+                <div className="h-8 mb-28"></div>
+                
+                {/* 5. COMMENTS COMPONENT */}
+                <div className="mb-28">
+                    <h3 className="text-xl font-medium text-gray-900 pb-3">Comments</h3>
+                    
+                    {/* Comments list */}
+                    <div className="space-y-5 pb-3">
+                    {comments.map((comment: any, i: number) => (
+                        <div key={i} className="p-1">
+                        <div className="bg-gray-50 rounded-xl p-2">
+                            <div className="flex items-center justify-between pb-3">
+                            <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                <div className="bg-blue-50 text-blue-700 w-full h-full flex items-center justify-center text-xs font-bold">
+                                    {comment.user?.charAt(0) || 'U'}
+                                </div>
+                                </Avatar>
+                                <span className="text-sm font-medium">{comment.user}</span>
                             </div>
-                            </Avatar>
-                            <span className="text-sm font-medium">{comment.user}</span>
+                            <span className="text-xs text-gray-500">{comment.date}</span>
+                            </div>
+                            <p className="text-sm leading-relaxed text-gray-700">{comment.text}</p>
                         </div>
-                        <span className="text-xs text-gray-500">{comment.date}</span>
                         </div>
-                        <p className="text-sm leading-relaxed text-gray-700">{comment.text}</p>
+                    ))}
                     </div>
-                    </div>
-                ))}
+                    
+                    {/* Add comment button */}
+                    <Button 
+                    className="w-full gap-2 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 h-12 text-sm"
+                    variant="ghost"
+                    >
+                    <MessageSquare className="h-4 w-4" />
+                    Add Comment
+                    </Button>
                 </div>
                 
-                {/* Add comment button */}
-                <Button 
-                className="w-full gap-2 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 h-12 text-sm"
-                variant="ghost"
-                >
-                <MessageSquare className="h-4 w-4" />
-                Add Comment
-                </Button>
-            </div>
-            
-            {/* Additional space at bottom */}
-            <div className="h-20"></div>
-
-            </div>
+                {/* Additional space at bottom */}
+                <div className="h-20"></div>
+                </div>
+              </>
+            )}
         </div>
     );
   };
