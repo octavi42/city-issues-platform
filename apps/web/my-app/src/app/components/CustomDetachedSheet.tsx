@@ -1,0 +1,473 @@
+"use client";
+
+import React, { useState, useRef, useEffect } from 'react';
+import { Sheet } from "@silk-hq/components";
+import "@/components/examples/DetachedSheet/DetachedSheet.css";
+import "@/components/examples/DetachedSheet/ExampleDetachedSheet.css";
+
+// Type definition for camera error
+interface MediaError extends Error {
+  name: string;
+}
+
+const CustomDetachedSheet = () => {
+  const [presented, setPresented] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const photoRef = useRef<HTMLCanvasElement>(null);
+  const [hasPhoto, setHasPhoto] = useState(false);
+  const [cameraSupported, setCameraSupported] = useState<boolean | null>(null);
+  const [cameraStarted, setCameraStarted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [imageData, setImageData] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  // Add a flag to track when we're expecting the file dialog
+  const [isFileDialogOpen, setIsFileDialogOpen] = useState(false);
+
+  // Detect mobile and iOS
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const userAgent = navigator.userAgent.toLowerCase();
+      setIsMobile(/iphone|ipad|ipod|android/.test(userAgent));
+      setIsIOS(/iphone|ipad|ipod/.test(userAgent));
+      
+      // On Safari, getUserMedia might exist but still fail
+      // We'll just assume camera is supported and try it when needed
+      setCameraSupported(true);
+    }
+  }, []);
+  
+  // Add an effect to keep the sheet presented when file dialog is open
+  useEffect(() => {
+    if (isFileDialogOpen) {
+      setPresented(true);
+    }
+  }, [isFileDialogOpen]);
+  
+  const openCamera = async () => {
+    try {
+      setShowCamera(true);
+      setPresented(true);
+      setShowConfirmation(false);
+      setImageData(null);
+      
+      if (cameraStarted) return;
+      
+      // Wait a bit to ensure DOM is ready - crucial for iOS Safari
+      setTimeout(async () => {
+        // On iOS/Safari, we need to make sure video element exists before requesting camera
+        if (videoRef.current) {
+          try {
+            // iOS Safari needs specific constraints
+            const constraints: MediaStreamConstraints = {
+              video: {
+                facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+              },
+              audio: false
+            };
+            
+            console.log("Requesting camera with constraints:", constraints);
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            console.log("Camera stream obtained:", stream);
+            const video = videoRef.current;
+            
+            if (video) {
+              // Set all required attributes for iOS Safari
+              video.setAttribute('autoplay', 'true');
+              video.setAttribute('muted', 'true');
+              video.setAttribute('playsinline', 'true');
+              
+              // Set srcObject
+              video.srcObject = stream;
+              
+              // For iOS Safari, we need to call play() in response to a user gesture
+              // and handle it slightly differently
+              if (isIOS) {
+                try {
+                  await video.play();
+                  console.log("iOS video playback started");
+                  setCameraStarted(true);
+                } catch (playErr: any) {
+                  console.error("iOS video play error:", playErr);
+                  alert("Please tap on the screen to activate the camera.");
+                  
+                  // Add a tap handler for iOS
+                  const handleTap = async () => {
+                    try {
+                      await video.play();
+                      console.log("iOS video playback started after tap");
+                      setCameraStarted(true);
+                      document.removeEventListener('touchend', handleTap);
+                    } catch (err) {
+                      console.error("Still can't play video after tap:", err);
+                    }
+                  };
+                  
+                  document.addEventListener('touchend', handleTap);
+                }
+              } else {
+                // Non-iOS devices
+                video.onloadedmetadata = () => {
+                  console.log("Video metadata loaded");
+                  video.play()
+                    .then(() => {
+                      console.log("Video playback started");
+                      setCameraStarted(true);
+                    })
+                    .catch((err: Error) => {
+                      console.error("Error starting video playback:", err);
+                    });
+                };
+              }
+            }
+          } catch (err: any) {
+            console.error("Error accessing camera:", err);
+            
+            // More specific error message for permissions issues
+            if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+              if (isIOS) {
+                alert("Camera access was denied. On iOS, you need to allow camera access in Settings > Safari > Camera.");
+              } else {
+                alert("Camera access was denied. Please allow camera access in your browser settings and try again.");
+              }
+            } else {
+              alert("Unable to access the camera: " + (err.message || "Unknown error"));
+            }
+            setShowCamera(false);
+          }
+        }
+      }, 100); // Short delay to ensure DOM is ready
+    } catch (error: any) {
+      console.error("Camera initialization error:", error);
+      setShowCamera(false);
+    }
+  };
+  
+  const takePhoto = () => {
+    const video = videoRef.current;
+    const photo = photoRef.current;
+    
+    if (video && photo) {
+      try {
+        const ctx = photo.getContext('2d');
+        if (ctx) {
+          // Get video dimensions or use defaults
+          const width = video.videoWidth || 640;
+          const height = video.videoHeight || 480;
+          
+          // Set canvas size to match video dimensions
+          photo.width = width;
+          photo.height = height;
+          
+          // iOS Safari sometimes needs a different approach for drawing to canvas
+          if (isIOS) {
+            // For iOS, draw with explicit dimensions
+            ctx.drawImage(video, 0, 0, width, height);
+          } else {
+            // Standard approach
+            ctx.drawImage(video, 0, 0, photo.width, photo.height);
+          }
+          
+          setHasPhoto(true);
+          
+          // Stop the camera stream
+          const stream = video.srcObject as MediaStream;
+          if (stream) {
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            setCameraStarted(false);
+          }
+        }
+      } catch (err: any) {
+        console.error("Error capturing photo:", err);
+        alert("Failed to capture photo: " + (err.message || "Unknown error"));
+      }
+    }
+  };
+  
+  const closeCamera = () => {
+    try {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        const tracks = stream.getTracks();
+        tracks.forEach(track => {
+          track.stop();
+          console.log("Track stopped:", track.kind);
+        });
+        // Clear srcObject for iOS
+        videoRef.current.srcObject = null;
+        setCameraStarted(false);
+      }
+    } catch (err: any) {
+      console.error("Error closing camera:", err);
+    }
+    setShowCamera(false);
+    setHasPhoto(false);
+  };
+  
+  const retakePhoto = () => {
+    setHasPhoto(false);
+    openCamera();
+  };
+  
+  const savePhoto = () => {
+    // Get photo data and return to the sheet view with the image
+    const photo = photoRef.current;
+    if (photo) {
+      try {
+        const photoData = photo.toDataURL('image/jpeg');
+        setImageData(photoData);
+        
+        // Close camera but show confirmation UI
+        closeCamera();
+        setShowConfirmation(true);
+        setPresented(true);
+      } catch (err: any) {
+        console.error("Error saving photo:", err);
+        alert("Failed to save photo: " + (err.message || "Unknown error"));
+        closeCamera();
+      }
+    }
+  };
+  
+  const handleTakePhotoClick = () => {
+    // Always try to open camera
+    openCamera();
+  };
+  
+  // Setup file input for the upload option
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Mark that file dialog is closed
+    setIsFileDialogOpen(false);
+    
+    const file = e.target.files?.[0];
+    // Ensure the sheet stays open
+    setPresented(true);
+    
+    if (file) {
+      // Here you would handle the uploaded file
+      console.log("File uploaded:", file);
+      
+      // Read the file as a data URL and show confirmation
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setImageData(result);
+        setShowConfirmation(true);
+        setPresented(true); // Ensure sheet stays open after file is loaded
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleSendImage = () => {
+    // Here you would send the image data to your backend or process it
+    console.log("Sending image:", imageData);
+    
+    // TODO: Add your sending logic here
+    
+    // Reset state and close sheet
+    setImageData(null);
+    setShowConfirmation(false);
+    setPresented(true);
+    
+    // Optionally show a success message
+    alert("Image sent successfully!");
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setPresented(true)}
+        className="fixed bottom-8 right-8 w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 z-50"
+        aria-label="Add"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          className="w-8 h-8"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 4v16m8-8H4"
+          />
+        </svg>
+      </button>
+
+      {/* Hidden file input for upload option */}
+      <input 
+        type="file"
+        accept="image/*"
+        className="hidden"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+      />
+
+      {/* Camera UI */}
+      {showCamera && (
+        <div className="fixed inset-0 bg-black z-[9999] flex flex-col">
+          <div className="relative flex-grow">
+            {!hasPhoto ? (
+              <>
+                <video 
+                  ref={videoRef} 
+                  className="absolute inset-0 h-full w-full object-cover"
+                  autoPlay
+                  playsInline
+                  muted
+                />
+                {!cameraStarted && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-white text-lg bg-black bg-opacity-50 p-4 rounded-lg">
+                      {isIOS ? "Tap to initialize camera..." : "Initializing camera..."}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <canvas 
+                ref={photoRef} 
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )}
+          </div>
+          
+          <div className="p-4 bg-gray-900 flex justify-between items-center">
+            {!hasPhoto ? (
+              <>
+                <button 
+                  onClick={closeCamera}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={takePhoto}
+                  className="w-16 h-16 bg-white rounded-full border-4 border-gray-300 flex items-center justify-center"
+                >
+                  <div className="w-12 h-12 bg-white rounded-full" />
+                </button>
+                <div className="w-16"></div> {/* Empty space for alignment */}
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={retakePhoto}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg"
+                >
+                  Retake
+                </button>
+                <button 
+                  onClick={savePhoto}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg"
+                >
+                  Use Photo
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Sheet.Root
+        license="non-commercial"
+        presented={presented}
+        onPresentedChange={setPresented}
+      >
+        <Sheet.Portal>
+          <Sheet.View
+            className="DetachedSheet-view contentPlacement-bottom"
+            contentPlacement="bottom"
+            tracks="bottom"
+            nativeEdgeSwipePrevention
+          >
+            <Sheet.Backdrop
+              travelAnimation={{
+                opacity: ({ progress }) => Math.min(progress * 0.2, 0.2),
+              }}
+              themeColorDimming="auto"
+            />
+            <Sheet.Content className="DetachedSheet-content">
+              <div className="DetachedSheet-innerContent ExampleDetachedSheet-root">
+                
+                
+                {showConfirmation && imageData ? (
+                  <div className="p-4 flex flex-col items-center">
+                    <h3 className="text-lg font-bold mb-3">Review Image</h3>
+                    <div className="w-full h-64 mb-4 rounded-lg overflow-hidden">
+                      <img 
+                        src={imageData} 
+                        alt="Captured" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <button
+                      onClick={handleSendImage}
+                      className="w-full bg-green-500 text-white p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
+                      </svg>
+                      Send
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="ExampleDetachedSheet-information">
+                      <Sheet.Title className="ExampleDetachedSheet-title">
+                        Add New Content
+                      </Sheet.Title>
+                      <Sheet.Description className="ExampleDetachedSheet-description">
+                        Choose how you want to add content
+                      </Sheet.Description>
+                    </div>
+                    <div className="flex flex-col gap-4 p-4">
+                      <button
+                        className="bg-blue-500 text-white p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
+                        onClick={handleTakePhotoClick}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                        </svg>
+                        Take a Photo
+                      </button>
+                      <button
+                        className="bg-gray-200 text-gray-800 p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors"
+                        onClick={() => {
+                          // Mark that we're expecting the file dialog to open
+                          setIsFileDialogOpen(true);
+                          // Ensure the sheet stays presented
+                          setPresented(true);
+                          // Click the file input
+                          fileInputRef.current?.click();
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a3 3 0 006 0V7a3 3 0 00-3-3zm5 3a5 5 0 00-10 0v4a5 5 0 0010 0V7z" clipRule="evenodd" />
+                          <path d="M14 7a1 1 0 10-2 0v4a1 1 0 102 0V7z" />
+                        </svg>
+                        Upload Image
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </Sheet.Content>
+          </Sheet.View>
+        </Sheet.Portal>
+      </Sheet.Root>
+    </>
+  );
+};
+
+export { CustomDetachedSheet }; 
