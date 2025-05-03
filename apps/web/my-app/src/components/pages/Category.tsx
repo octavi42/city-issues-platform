@@ -5,6 +5,7 @@ import { CSSProperties, useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from 'next/navigation';
 import { fetchCategories, fetchDetectionEventsByCategory, fetchPhotosWithDetectionEvents } from '@/lib/neo4j-queries';
 import { Category as CategoryType, DetectionEvent } from '@/lib/neo4j-schema';
+import { Skeleton } from "@/components/ui/skeleton";
 
 // create a component
 const Category = () => {
@@ -17,6 +18,7 @@ const Category = () => {
     const [imageDataList, setImageDataList] = useState<any[]>([]);
     const [detectionEvents, setDetectionEvents] = useState<DetectionEvent[]>([]);
     const [photosWithEvents, setPhotosWithEvents] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [categoryData, setCategoryData] = useState({
         title: "",
         description: "",
@@ -33,6 +35,7 @@ const Category = () => {
     useEffect(() => {
         const fetchCategoryData = async () => {
             try {
+                setIsLoading(true);
                 console.log("Fetching category data for slug:", slug);
                 if (!slug) return;
                 
@@ -63,7 +66,7 @@ const Category = () => {
                 }
             } catch (error) {
                 console.error("Error fetching category data:", error);
-                // Fallback to default data if fetch fails
+                // Don't set loading to false on error - keep showing skeletons
             }
         };
         
@@ -74,6 +77,7 @@ const Category = () => {
     useEffect(() => {
         const fetchPhotosAndEvents = async () => {
             try {
+                setIsLoading(true);
                 if (!slug) return;
                 
                 const photosAndEvents = await fetchPhotosWithDetectionEvents(slug);
@@ -94,6 +98,16 @@ const Category = () => {
 
     // Generate image data from photos and detection events
     useEffect(() => {
+        // Add a small offset time after data is loaded
+        const finishLoading = (data: any[]) => {
+            setImageDataList(data);
+            // Small delay to ensure data is fully processed before showing
+            setTimeout(() => {
+                setIsLoading(false);
+            }, 300);
+        };
+
+        // Remove artificial delay and ensure loading state is correctly managed
         if (photosWithEvents.length > 0) {
             // Map photos with detection events to image data format
             const generatedData = photosWithEvents.map((item, index) => {
@@ -126,7 +140,7 @@ const Category = () => {
                     ]
                 };
             });
-            setImageDataList(generatedData);
+            finishLoading(generatedData);
         } else if (detectionEvents.length > 0) {
             // Fallback to detection events if no photos are available
             // Map detection events to image data format
@@ -160,11 +174,18 @@ const Category = () => {
                     ]
                 };
             });
-            setImageDataList(generatedData);
-        } else {
+            finishLoading(generatedData);
+        } else if (categoryData.title) {
+            // Only generate mock data when we have a category title
             // Fallback to mock data if no events
             generateMockData();
         }
+        // Don't set loading to false if we don't have data yet
+        
+        // Cleanup any lingering timeouts when component unmounts
+        return () => {
+            clearTimeout(finishLoading as unknown as number);
+        };
     }, [photosWithEvents, detectionEvents, categoryData]);
 
     // Fallback mock data generator
@@ -221,7 +242,43 @@ const Category = () => {
                 ]
             };
         });
-        setImageDataList(generatedData);
+        
+        // Only set loading to false if we actually have data
+        if (generatedData.length > 0) {
+            setImageDataList(generatedData);
+            // Small delay to ensure data is fully processed before showing
+            setTimeout(() => {
+                setIsLoading(false);
+            }, 300);
+        }
+    };
+
+    // Skeleton loader for the image grid
+    const renderSkeletonGrid = () => {
+        return (
+            <div className="grid grid-cols-2 gap-4 mt-8 w-full">
+                {/* Left Column - Just 3 simple blocks */}
+                <div className="flex flex-col gap-4 w-full">
+                    {[1, 2, 3].map((index) => (
+                        <Skeleton 
+                            key={`skeleton-left-${index}`} 
+                            className="w-full h-40 rounded-[1.875rem] bg-gray-200" 
+                        />
+                    ))}
+                </div>
+
+                {/* Right Column - Just 3 simple blocks with offset for visual variety */}
+                <div className="flex flex-col gap-4 w-full">
+                    <div className="h-6"></div>
+                    {[1, 2, 3].map((index) => (
+                        <Skeleton 
+                            key={`skeleton-right-${index}`} 
+                            className="w-full h-40 rounded-[1.875rem] bg-gray-200" 
+                        />
+                    ))}
+                </div>
+            </div>
+        );
     };
 
     // renderImageGrid function using client-side state
@@ -321,56 +378,82 @@ const Category = () => {
                 <div className="w-full h-10"></div>
 
                 <div className="flex items-center mb-4 relative w-full">
-                    <h1 className="text-4xl font-bold leading-tight capitalize text-black flex-1">{categoryData.title}</h1>
+                    {isLoading ? (
+                        <Skeleton className="h-8 w-2/3 bg-gray-200" />
+                    ) : (
+                        <h1 className="text-4xl font-bold leading-tight capitalize text-black flex-1">{categoryData.title}</h1>
+                    )}
                 </div>
 
                 <div className="w-full h-10"></div>
 
-                <p className="text-xl leading-tight text-[#787575] tracking-wider mb-6 w-full">{categoryData.description}</p>
+                {isLoading ? (
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-full bg-gray-200" />
+                        <Skeleton className="h-4 w-3/4 bg-gray-200" />
+                    </div>
+                ) : (
+                    <p className="text-xl leading-tight text-[#787575] tracking-wider mb-6 w-full">{categoryData.description}</p>
+                )}
 
                 <div className="w-full h-4"></div>
                 
                 {/* Stats Container */}
                 <div className="bg-[#F7F7F7] rounded-[1.875rem] p-6 mb-6 w-full">
-                    <div className="flex justify-between mb-6">
-                        <div className="flex flex-col items-center text-center flex-1">
-                            <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.reported}</div>
-                            <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">reported issues</div>
+                    {isLoading ? (
+                        <div className="flex justify-between">
+                            {/* Simple placeholders for stats */}
+                            <Skeleton className="h-10 w-20 bg-gray-200" />
+                            <Skeleton className="h-10 w-20 bg-gray-200" />
+                            <Skeleton className="h-10 w-20 bg-gray-200" />
                         </div>
-                        <div className="flex flex-col items-center text-center flex-1">
-                            <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.solved}</div>
-                            <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">solved issues</div>
+                    ) : (
+                        <div className="flex justify-between mb-6">
+                            <div className="flex flex-col items-center text-center flex-1">
+                                <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.reported}</div>
+                                <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">reported issues</div>
+                            </div>
+                            <div className="flex flex-col items-center text-center flex-1">
+                                <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.solved}</div>
+                                <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">solved issues</div>
+                            </div>
+                            <div className="flex flex-col items-center text-center flex-1">
+                                <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.resolution}</div>
+                                <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">resolution time</div>
+                            </div>
                         </div>
-                        <div className="flex flex-col items-center text-center flex-1">
-                            <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.resolution}</div>
-                            <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">resolution time</div>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
                 <div className="w-full h-4"></div>
                 
                 {/* Severity Container */}
                 <div className="bg-[#F7F7F7] rounded-[1.875rem] p-4 px-6 flex justify-between items-center mb-6 w-full">
-                    <div className={`${categoryData.severity === "high" ? 'bg-[#FE7A71] text-[#F7F7F7]' : ''} 
-                        rounded-[1.875rem] py-2 px-4 text-[0.9375rem] font-normal w-20 text-center
-                        ${categoryData.severity !== "high" ? 'text-[#075CDD] opacity-50' : ''}`}>
-                        High
-                    </div>
-                    <div className={`text-[#728019] text-[0.9375rem] font-normal py-2 w-20 text-center 
-                        ${categoryData.severity === "medium" ? '' : 'opacity-50'}`}>
-                        Medium
-                    </div>
-                    <div className={`text-[#075CDD] text-[0.9375rem] font-normal py-2 w-20 text-center 
-                        ${categoryData.severity === "low" ? '' : 'opacity-50'}`}>
-                        Low
-                    </div>
+                    {isLoading ? (
+                        <Skeleton className="h-8 w-full bg-gray-200" />
+                    ) : (
+                        <>
+                            <div className={`${categoryData.severity === "high" ? 'bg-[#FE7A71] text-[#F7F7F7]' : ''} 
+                                rounded-[1.875rem] py-2 px-4 text-[0.9375rem] font-normal w-20 text-center
+                                ${categoryData.severity !== "high" ? 'text-[#075CDD] opacity-50' : ''}`}>
+                                High
+                            </div>
+                            <div className={`text-[#728019] text-[0.9375rem] font-normal py-2 w-20 text-center 
+                                ${categoryData.severity === "medium" ? '' : 'opacity-50'}`}>
+                                Medium
+                            </div>
+                            <div className={`text-[#075CDD] text-[0.9375rem] font-normal py-2 w-20 text-center 
+                                ${categoryData.severity === "low" ? '' : 'opacity-50'}`}>
+                                Low
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 <div className="w-full h-4"></div>
 
-                {/* Images Grid */}
-                {renderImageGrid()}
+                {/* Images Grid with skeleton loading state */}
+                {isLoading ? renderSkeletonGrid() : renderImageGrid()}
                 
                 <div className="w-full h-20"></div>
             </div>

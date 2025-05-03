@@ -6,6 +6,7 @@ import { Sheet, Scroll } from "@silk-hq/components";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Calendar, MapPin, AlertTriangle, ChevronDown, X } from "lucide-react";
 import { fetchDetectionEventById, fetchPhotoByEventId } from "@/lib/neo4j-queries";
 import { DetectionEvent } from "@/lib/neo4j-schema";
@@ -123,9 +124,15 @@ const Issue = () => {
               comments: []
             });
           }
+          
+          // Add a small delay before showing content to ensure data is processed
+          setTimeout(() => {
+            if (mountedRef.current) {
+              setLoading(false);
+            }
+          }, 300);
         } catch (error) {
           console.error("Error fetching event data:", error);
-        } finally {
           setLoading(false);
         }
       };
@@ -169,8 +176,71 @@ const Issue = () => {
     return (
       <div className="relative h-full overflow-auto">
             {loading ? (
-              <div className="flex justify-center items-center h-full">
-                <div className="text-lg">Loading...</div>
+              <div className="w-full h-full">
+                {/* Image Skeleton */}
+                <Skeleton className="w-full aspect-[3/2] mb-16" />
+                
+                <div className="px-8 md:px-10">
+                  {/* Title Skeleton - just one for the title */}
+                  <div className="sticky top-0 z-[51] py-6 bg-white/90 backdrop-blur-sm mb-20">
+                    <Skeleton className="h-9 w-2/3" />
+                  </div>
+                  
+                  {/* Description Skeleton - just two lines */}
+                  <div className="mb-28">
+                    <Skeleton className="h-5 w-full mb-3" />
+                    <Skeleton className="h-5 w-4/5" />
+                  </div>
+                  
+                  {/* Details Skeleton - section title and simplified content */}
+                  <div className="mb-28">
+                    <Skeleton className="h-7 w-32 mb-3" />
+                    <div className="bg-gray-50 rounded-2xl p-4">
+                      {/* Just two key details instead of four */}
+                      <div className="flex items-center justify-between h-10 mb-2">
+                        <Skeleton className="h-5 w-24" />
+                        <Skeleton className="h-5 w-20" />
+                      </div>
+                      <div className="flex items-center justify-between h-10">
+                        <Skeleton className="h-5 w-24" />
+                        <Skeleton className="h-5 w-20" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Suggestions Skeleton - section title and simplified content */}
+                  <div className="mb-28">
+                    <Skeleton className="h-7 w-32 mb-3" />
+                    <div className="bg-gray-50 rounded-2xl p-4 pl-10">
+                      {/* Just two suggestions */}
+                      <Skeleton className="h-5 w-3/4 mb-5" />
+                      <Skeleton className="h-5 w-2/3" />
+                    </div>
+                  </div>
+                  
+                  {/* Comments Skeleton - section title and one comment */}
+                  <div className="mb-28">
+                    <Skeleton className="h-7 w-32 mb-3" />
+                    
+                    {/* Just one comment */}
+                    <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                      <div className="flex items-center justify-between pb-3">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                          <Skeleton className="h-4 w-20" />
+                        </div>
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                    
+                    {/* Comment button */}
+                    <Skeleton className="w-full h-12 rounded-xl" />
+                  </div>
+                  
+                  {/* Bottom spacing */}
+                  <div className="h-20"></div>
+                </div>
               </div>
             ) : (
               <>
