@@ -22,8 +22,6 @@ const CustomDetachedSheet = () => {
   const [isIOS, setIsIOS] = useState(false);
   const [imageData, setImageData] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  // Add a flag to track when we're expecting the file dialog
-  const [isFileDialogOpen, setIsFileDialogOpen] = useState(false);
 
   // Detect mobile and iOS
   useEffect(() => {
@@ -37,13 +35,6 @@ const CustomDetachedSheet = () => {
       setCameraSupported(true);
     }
   }, []);
-  
-  // Add an effect to keep the sheet presented when file dialog is open
-  useEffect(() => {
-    if (isFileDialogOpen) {
-      setPresented(true);
-    }
-  }, [isFileDialogOpen]);
   
   const openCamera = async () => {
     try {
@@ -243,13 +234,9 @@ const CustomDetachedSheet = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Mark that file dialog is closed
-    setIsFileDialogOpen(false);
-    
+    setPresented(true)
+
     const file = e.target.files?.[0];
-    // Ensure the sheet stays open
-    setPresented(true);
-    
     if (file) {
       // Here you would handle the uploaded file
       console.log("File uploaded:", file);
@@ -260,7 +247,7 @@ const CustomDetachedSheet = () => {
         const result = reader.result as string;
         setImageData(result);
         setShowConfirmation(true);
-        setPresented(true); // Ensure sheet stays open after file is loaded
+        // Don't close the sheet
       };
       reader.readAsDataURL(file);
     }
@@ -284,24 +271,30 @@ const CustomDetachedSheet = () => {
   return (
     <>
       <button
-        onClick={() => setPresented(true)}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 z-50"
-        aria-label="Add"
+        onClick={() => setPresented(!presented)}
+        className={`fixed bottom-8 right-8 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300 ease-in-out z-50 ${
+          presented 
+            ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300' 
+            : 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-300'
+        }`}
+        aria-label={presented ? "Close" : "Add"}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          className="w-8 h-8"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
+        <div className={`transform transition-transform duration-300 ${presented ? 'rotate-45' : ''}`}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            className="w-8 h-8"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+        </div>
       </button>
 
       {/* Hidden file input for upload option */}
@@ -411,15 +404,29 @@ const CustomDetachedSheet = () => {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <button
-                      onClick={handleSendImage}
-                      className="w-full bg-green-500 text-white p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
-                      </svg>
-                      Send
-                    </button>
+                    <div className="flex w-full gap-3">
+                      <button
+                        onClick={() => {
+                          setImageData(null);
+                          setShowConfirmation(false);
+                        }}
+                        className="flex-1 bg-gray-500 text-white p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-600 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSendImage}
+                        className="flex-1 bg-green-500 text-white p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
+                        </svg>
+                        Send
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -443,14 +450,7 @@ const CustomDetachedSheet = () => {
                       </button>
                       <button
                         className="bg-gray-200 text-gray-800 p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors"
-                        onClick={() => {
-                          // Mark that we're expecting the file dialog to open
-                          setIsFileDialogOpen(true);
-                          // Ensure the sheet stays presented
-                          setPresented(true);
-                          // Click the file input
-                          fileInputRef.current?.click();
-                        }}
+                        onClick={() => fileInputRef.current?.click()}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a3 3 0 006 0V7a3 3 0 00-3-3zm5 3a5 5 0 00-10 0v4a5 5 0 0010 0V7z" clipRule="evenodd" />
