@@ -1,9 +1,6 @@
 "use client";
-import { Sheet, VisuallyHidden } from "@silk-hq/components";
-import { SheetTriggerCard } from "@/components/app/SheetTriggerCard/SheetTriggerCard";
+import { Sheet } from "@silk-hq/components";
 import "./Card.css";
-
-import image from "./../../../app/images/thumbnails/Card.png";
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
    presentTrigger: React.ReactNode;

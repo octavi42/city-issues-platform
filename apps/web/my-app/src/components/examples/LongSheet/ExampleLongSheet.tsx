@@ -1,12 +1,8 @@
-import React, { useContext } from "react";
+import React from "react";
 import { Sheet } from "@silk-hq/components";
 import { LongSheet } from "./LongSheet";
 import "./ExampleLongSheet.css";
 import { SheetDismissButton } from "@/components/examples/_GenericComponents/SheetDismissButton/SheetDismissButton";
-
-import Image from "next/image";
-import picture from "./../../../app/images/image7.jpg";
-import image from "./../../../app/images/thumbnails/LongSheet.png";
 import { SheetTriggerCard } from "@/components/app/SheetTriggerCard/SheetTriggerCard";
 
 const ExampleLongSheet = () => {

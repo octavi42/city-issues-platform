@@ -8,6 +8,13 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
    sheetContent: React.ReactNode;
 }
 
+interface ScrollProgress {
+   progress: number;
+}
+
+// Use the proper type for Scroll component
+type ScrollRef = React.ElementRef<typeof Scroll.Root>;
+
 const LongSheet = ({ presentTrigger, sheetContent, ...restProps }: Props) => {
    const [presented, setPresented] = useState(false);
    const [restingOutside, setRestingOutside] = useState(false);
@@ -15,12 +22,12 @@ const LongSheet = ({ presentTrigger, sheetContent, ...restProps }: Props) => {
    //
    // Track switching based on scroll position & presented
 
-   const scrollRef = useRef<any>(null);
+   const scrollRef = useRef<ScrollRef>(null);
 
    const [track, setTrack] = useState<"top" | "bottom">("bottom");
 
    const scrollHandler = useCallback(
-      ({ progress }: any) => {
+      ({ progress }: ScrollProgress) => {
          if (restingOutside) return; // ! Checking because it may scroll to 1 when outside
          setTrack(progress < 0.5 ? "bottom" : "top");
       },

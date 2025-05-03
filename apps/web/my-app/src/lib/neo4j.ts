@@ -1,12 +1,18 @@
 import neo4j, { Driver, Session, QueryResult, Integer } from 'neo4j-driver';
 
+// Define types for Neo4j records and values
+type Neo4jValue = string | number | boolean | null | Neo4jObject | Neo4jArray;
+type Neo4jObject = { [key: string]: Neo4jValue };
+type Neo4jArray = Neo4jValue[];
+type Neo4jRecord = Record<string, Neo4jValue>;
+
 let driver: Driver | undefined;
 
 function getDriver(): Driver {
   if (!driver) {
-    const uri = "neo4j+s://edcd5f68.databases.neo4j.io"
-    const user = "neo4j"
-    const password = "BtPlV_hKS_jh5twL-bqIBHRDct3dkMK00XrOqoNHVhg"
+    const uri = process.env.NEO4J_URI;
+    const user = process.env.NEO4J_USERNAME;
+    const password = process.env.NEO4J_PASSWORD;
 
     if (!uri || !user || !password) {
       throw new Error('Missing Neo4j connection details in environment variables (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)');
@@ -22,9 +28,9 @@ function getDriver(): Driver {
   return driver;
 }
 
-export async function runQuery<T = any>(
+export async function runQuery<T = Neo4jRecord>(
   query: string,
-  params?: Record<string, any>
+  params?: Record<string, Neo4jValue>
 ): Promise<T[]> {
   const driverInstance = getDriver();
   let session: Session | undefined;
@@ -35,7 +41,7 @@ export async function runQuery<T = any>(
 
     // Process records: Convert Neo4j specific types (like Integer) to standard JS types if needed
     const data = result.records.map(record => {
-      const obj: Record<string, any> = {};
+      const obj: Record<string, Neo4jValue> = {};
       record.keys.forEach(key => {
         const value = record.get(key);
         const keyString = String(key); // Ensure key is treated as a string
@@ -48,10 +54,10 @@ export async function runQuery<T = any>(
           // Convert potentially large numbers safely if needed, here just taking low part for simplicity
           obj[keyString] = value.low;
         } else {
-          obj[keyString] = value;
+          obj[keyString] = value as Neo4jValue;
         }
       });
-      return obj as T;
+      return obj as unknown as T;
     });
 
     return data;
@@ -78,9 +84,9 @@ export async function closeDriver(): Promise<void> {
 /**
  * Creates a new node with the specified label and properties.
  */
-export async function createNode<T = any>(
+export async function createNode<T = Neo4jRecord>(
   label: string,
-  props: Record<string, any>
+  props: Record<string, Neo4jValue>
 ): Promise<T> {
   const query = `CREATE (n:${label} $props) RETURN properties(n) AS node`;
   const results = await runQuery<{ node: T }>(query, { props });
@@ -90,7 +96,7 @@ export async function createNode<T = any>(
 /**
  * Retrieves all nodes of a given label.
  */
-export async function getNodes<T = any>(label: string): Promise<T[]> {
+export async function getNodes<T = Neo4jRecord>(label: string): Promise<T[]> {
   const query = `MATCH (n:${label}) RETURN properties(n) AS node`;
   const results = await runQuery<{ node: T }>(query);
   return results.map(r => r.node);
@@ -99,10 +105,10 @@ export async function getNodes<T = any>(label: string): Promise<T[]> {
 /**
  * Retrieves a single node by label and key property.
  */
-export async function getNodeByKey<T = any>(
+export async function getNodeByKey<T = Neo4jRecord>(
   label: string,
   key: string,
-  value: any
+  value: Neo4jValue
 ): Promise<T | null> {
   const query = `MATCH (n:${label} {${key}: $value}) RETURN properties(n) AS node LIMIT 1`;
   const results = await runQuery<{ node: T }>(query, { value });
@@ -112,11 +118,11 @@ export async function getNodeByKey<T = any>(
 /**
  * Updates properties of a node by label and key.
  */
-export async function updateNodeByKey<T = any>(
+export async function updateNodeByKey<T = Neo4jRecord>(
   label: string,
   key: string,
-  value: any,
-  props: Record<string, any>
+  value: Neo4jValue,
+  props: Record<string, Neo4jValue>
 ): Promise<T | null> {
   const query = `
     MATCH (n:${label} { ${key}: $value })
@@ -134,7 +140,7 @@ export async function updateNodeByKey<T = any>(
 export async function deleteNodeByKey(
   label: string,
   key: string,
-  value: any
+  value: Neo4jValue
 ): Promise<void> {
   const query = `MATCH (n:${label} {${key}: $value}) DETACH DELETE n`;
   await runQuery(query, { value });

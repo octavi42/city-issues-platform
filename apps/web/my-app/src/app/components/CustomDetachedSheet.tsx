@@ -2,13 +2,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Sheet } from "@silk-hq/components";
+import Image from 'next/image';
 import "@/components/examples/DetachedSheet/DetachedSheet.css";
 import "@/components/examples/DetachedSheet/ExampleDetachedSheet.css";
-
-// Type definition for camera error
-interface MediaError extends Error {
-  name: string;
-}
 
 const CustomDetachedSheet = () => {
   const [presented, setPresented] = useState(false);
@@ -16,9 +12,7 @@ const CustomDetachedSheet = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const photoRef = useRef<HTMLCanvasElement>(null);
   const [hasPhoto, setHasPhoto] = useState(false);
-  const [cameraSupported, setCameraSupported] = useState<boolean | null>(null);
   const [cameraStarted, setCameraStarted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [imageData, setImageData] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -27,12 +21,8 @@ const CustomDetachedSheet = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const userAgent = navigator.userAgent.toLowerCase();
-      setIsMobile(/iphone|ipad|ipod|android/.test(userAgent));
+      // Check if iOS device without storing the mobile check
       setIsIOS(/iphone|ipad|ipod/.test(userAgent));
-      
-      // On Safari, getUserMedia might exist but still fail
-      // We'll just assume camera is supported and try it when needed
-      setCameraSupported(true);
     }
   }, []);
   
@@ -82,7 +72,7 @@ const CustomDetachedSheet = () => {
                   await video.play();
                   console.log("iOS video playback started");
                   setCameraStarted(true);
-                } catch (playErr: any) {
+                } catch (playErr: unknown) {
                   console.error("iOS video play error:", playErr);
                   alert("Please tap on the screen to activate the camera.");
                   
@@ -109,30 +99,34 @@ const CustomDetachedSheet = () => {
                       console.log("Video playback started");
                       setCameraStarted(true);
                     })
-                    .catch((err: Error) => {
+                    .catch((err: unknown) => {
                       console.error("Error starting video playback:", err);
                     });
                 };
               }
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error("Error accessing camera:", err);
             
             // More specific error message for permissions issues
-            if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-              if (isIOS) {
-                alert("Camera access was denied. On iOS, you need to allow camera access in Settings > Safari > Camera.");
+            if (err && typeof err === 'object' && 'name' in err) {
+              const errorObj = err as { name: string };
+              if (errorObj.name === "NotAllowedError" || errorObj.name === "PermissionDeniedError") {
+                if (isIOS) {
+                  alert("Camera access was denied. On iOS, you need to allow camera access in Settings > Safari > Camera.");
+                } else {
+                  alert("Camera access was denied. Please allow camera access in your browser settings and try again.");
+                }
               } else {
-                alert("Camera access was denied. Please allow camera access in your browser settings and try again.");
+                const errorMessage = err instanceof Error ? err.message : "Unknown error";
+                alert("Unable to access the camera: " + (errorMessage));
               }
-            } else {
-              alert("Unable to access the camera: " + (err.message || "Unknown error"));
             }
             setShowCamera(false);
           }
         }
       }, 100); // Short delay to ensure DOM is ready
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Camera initialization error:", error);
       setShowCamera(false);
     }
@@ -173,9 +167,10 @@ const CustomDetachedSheet = () => {
             setCameraStarted(false);
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error capturing photo:", err);
-        alert("Failed to capture photo: " + (err.message || "Unknown error"));
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        alert("Failed to capture photo: " + errorMessage);
       }
     }
   };
@@ -193,7 +188,7 @@ const CustomDetachedSheet = () => {
         videoRef.current.srcObject = null;
         setCameraStarted(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error closing camera:", err);
     }
     setShowCamera(false);
@@ -217,9 +212,10 @@ const CustomDetachedSheet = () => {
         closeCamera();
         setShowConfirmation(true);
         setPresented(true);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error saving photo:", err);
-        alert("Failed to save photo: " + (err.message || "Unknown error"));
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        alert("Failed to save photo: " + errorMessage);
         closeCamera();
       }
     }
@@ -397,11 +393,12 @@ const CustomDetachedSheet = () => {
                 {showConfirmation && imageData ? (
                   <div className="p-4 flex flex-col items-center">
                     <h3 className="text-lg font-bold mb-3">Review Image</h3>
-                    <div className="w-full h-64 mb-4 rounded-lg overflow-hidden">
-                      <img 
+                    <div className="w-full h-64 mb-4 rounded-lg overflow-hidden relative">
+                      <Image 
                         src={imageData} 
                         alt="Captured" 
-                        className="w-full h-full object-cover"
+                        fill
+                        style={{ objectFit: 'cover' }}
                       />
                     </div>
                     <div className="flex w-full gap-3">

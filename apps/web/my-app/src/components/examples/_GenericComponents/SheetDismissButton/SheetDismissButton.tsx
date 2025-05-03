@@ -3,7 +3,13 @@ import { VisuallyHidden } from "@silk-hq/components";
 import "./SheetDismissButton.css";
 import React from "react";
 
-const SheetDismissButton = ({ className, variant, ref, ...restProps }: any) => {
+interface SheetDismissButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+   className?: string;
+   variant?: string;
+   ref?: React.Ref<HTMLButtonElement>;
+}
+
+const SheetDismissButton = ({ className = "", variant = "default", ref, ...restProps }: SheetDismissButtonProps) => {
    return (
       <button className={`SheetDismissButton-root variant-${variant} ${className}`} {...restProps} ref={ref}>
          <svg

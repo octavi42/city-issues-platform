@@ -10,6 +10,14 @@ import {
   Solution,
 } from './neo4j-schema';
 
+// Define interfaces for types not in schema
+interface Photo {
+  photo_id: string;
+  url?: string;
+  taken_at?: string;
+  [key: string]: unknown;
+}
+
 /** Fetch all User nodes */
 export async function fetchUsers(): Promise<User[]> {
   return getNodes<User>('User');
@@ -41,7 +49,7 @@ export async function fetchDetectionEventById(eventId: string): Promise<Detectio
 }
 
 /** Fetch photo associated with a detection event by event_id */
-export async function fetchPhotoByEventId(eventId: string): Promise<any | null> {
+export async function fetchPhotoByEventId(eventId: string): Promise<Photo | null> {
   // Cypher query to find the photo that triggers a specific detection event
   const cypher = `
     MATCH (p:Photo)-[:TRIGGERS_EVENT]->(e:DetectionEvent)
@@ -49,7 +57,7 @@ export async function fetchPhotoByEventId(eventId: string): Promise<any | null> 
     RETURN properties(p) AS photo
   `;
   
-  const results = await runQuery<{ photo: any }>(cypher, { eventId });
+  const results = await runQuery<{ photo: Photo }>(cypher, { eventId });
   return results.length > 0 ? results[0].photo : null;
 }
 
@@ -67,7 +75,7 @@ export async function fetchDetectionEventsByCategory(categorySlug: string): Prom
 }
 
 /** Fetch photos with their related detection events by category slug */
-export async function fetchPhotosWithDetectionEvents(categorySlug: string): Promise<any[]> {
+export async function fetchPhotosWithDetectionEvents(categorySlug: string): Promise<Array<{photo: Photo; event: DetectionEvent}>> {
   // Cypher query to find photos that trigger detection events in a specific category
   const cypher = `
     MATCH (p:Photo)-[:TRIGGERS_EVENT]->(e:DetectionEvent)-[:IN_CATEGORY]->(c:Category)
@@ -75,7 +83,7 @@ export async function fetchPhotosWithDetectionEvents(categorySlug: string): Prom
     RETURN properties(p) AS photo, properties(e) AS event
   `;
   
-  return runQuery(cypher, { categorySlug });
+  return runQuery<{photo: Photo; event: DetectionEvent}>(cypher, { categorySlug });
 }
 
 /** Fetch all Category nodes */

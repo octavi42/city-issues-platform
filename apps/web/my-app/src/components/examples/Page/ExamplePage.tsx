@@ -1,18 +1,12 @@
 "use client";
 
-import { useParams, useRouter } from 'next/navigation';
-import React, { CSSProperties, useState, useEffect, useRef } from "react";
+import React, { CSSProperties, useEffect, useRef } from "react";
 import './ExamplePage.css';
+import Image from "next/image";
 
-import { Sheet, createComponentId, Scroll } from "@silk-hq/components";
-import { ExampleSheetWithStackingData } from '@/components/examples/SheetWithStacking/ExampleSheetWithStackingData';
+import { Sheet, Scroll } from "@silk-hq/components";
 import { ExampleSheetWithStacking } from '@/components/examples/SheetWithStacking/ExampleSheetWithStacking';
-import { 
-  SheetWithStackingStack, 
-  SheetWithStackingRoot, 
-  SheetWithStackingView 
-} from '@/components/examples/SheetWithStacking/SheetWithStacking';
-import { ExampleSheetWithStackingView } from '@/components/examples/SheetWithStacking/ExampleSheetWithStacking';
+import { SheetWithStackingStack } from '@/components/examples/SheetWithStacking/SheetWithStacking';
 import { SheetTriggerCard } from '@/components/app/SheetTriggerCard/SheetTriggerCard';
 import { Page } from './Page';
 import { SheetDismissButton } from '../_GenericComponents/SheetDismissButton/SheetDismissButton';
@@ -201,26 +195,8 @@ const ExamplePage = ({
   imageUrls = [],
   autoOpen = false
 }: ExamplePageProps) => {
-  const params = useParams();
-  const router = useRouter();
-  
-  // Create a stable Silk sheet context for this page
-  const sheetContext = useRef(createComponentId()).current;
-
-  // State for modal visibility and selected issue
-  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
-
   // State and refs for image visibility
   const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  // Function to open/close the sheet directly with state
-  const openIssueSheet = (issueId: number) => {
-    setSelectedIssueId(issueId.toString());
-  };
-
-  const closeIssueSheet = () => {
-    setSelectedIssueId(null);
-  };
 
   // Auto-open the sheet if specified in props
   useEffect(() => {
@@ -285,7 +261,14 @@ const ExamplePage = ({
                 data={imageData}
                 trigger={
                   <div className={`imageItem image-${item}`}>
-                    <img src={images[index]} alt={issues[index]} />
+                    <div className="image-container" style={{ position: 'relative', width: '100%', height: '150px' }}>
+                      <Image 
+                        src={images[index]} 
+                        alt={issues[index]} 
+                        fill
+                        style={{ objectFit: 'cover' }}
+                      />
+                    </div>
                     <div className="overlay">
                       <div className="title">
                         {issues[index] || `${categoryData.slug} ${item}`}

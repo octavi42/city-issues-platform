@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useState, useMemo, useCallback } from "react";
+import React, { useRef, useCallback } from "react";
 import { Sheet, useClientMediaQuery, type SheetViewProps } from "@silk-hq/components";
 
 import "./SheetWithKeyboard.css";

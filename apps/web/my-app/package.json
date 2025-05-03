@@ -10,6 +10,7 @@
     "dump-schema": "node scripts/dump-schema.js"
   },
   "dependencies": {
+    "@next/env": "^15.3.1",
     "@silk-hq/components": "^0.9.1",
     "animejs": "^4.0.2",
     "class-variance-authority": "^0.7.1",

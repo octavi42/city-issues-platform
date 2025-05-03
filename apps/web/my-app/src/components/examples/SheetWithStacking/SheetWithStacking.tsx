@@ -5,7 +5,6 @@ import {
   SheetStack,
   SheetViewProps,
   useClientMediaQuery,
-  VisuallyHidden,
   type SheetContentProps,
 } from "@silk-hq/components";
 import "./SheetWithStacking.css";
@@ -13,14 +12,22 @@ import "./SheetWithStacking.css";
 //
 // The Sheet Stack
 
-const SheetWithStackingStack = (props: any) => {
+interface SheetStackProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
+
+const SheetWithStackingStack = (props: SheetStackProps) => {
   return <SheetStack.Root asChild {...props} />;
 };
 
 //
 // The Sheet Root
 
-const SheetWithStackingRoot = (props: any) => (
+interface SheetRootProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
+
+const SheetWithStackingRoot = (props: SheetRootProps) => (
   <Sheet.Root license="non-commercial" forComponent="closest" {...props} />
 );
 

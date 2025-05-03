@@ -1,5 +1,5 @@
 "use client";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import {
   Sheet,
   Scroll,
@@ -74,12 +74,40 @@ const defaultValues = {
     "Experience unmatched comfort and performance NatureStride's TrailBlazer Runners.",
 };
 
+interface FormData {
+  name: string;
+  brand: string;
+  type: string;
+  color1: string;
+  color2: string;
+  color3: string;
+  price: number;
+  description: string;
+}
+
+interface FieldData {
+  label: string;
+  name: string;
+  type?: string;
+  description?: string;
+  placeholder?: string;
+}
+
+interface InputFieldProps {
+  data: FieldData;
+  formValues: FormData;
+  setFormValues: React.Dispatch<React.SetStateAction<FormData>>;
+  className?: string;
+  style?: React.CSSProperties;
+  [key: string]: unknown;
+}
+
 const TextInputField = ({
   data: { label, name, type = "text", description, placeholder },
   formValues,
   setFormValues,
   ...restProps
-}: any) => {
+}: InputFieldProps) => {
   return (
     <div className="ExampleSheetWithKeyboard-field" {...restProps}>
       <label htmlFor={name} className="ExampleSheetWithKeyboard-label">
@@ -93,10 +121,10 @@ const TextInputField = ({
         type={type}
         {...(type === "number" ? { pattern: "\\d*" } : {})}
         placeholder={placeholder}
-        // @ts-ignore
+        // @ts-expect-error Custom property access
         value={formValues[name]}
         onChange={(event) =>
-          setFormValues((prevValue: any) => ({
+          setFormValues((prevValue: FormData) => ({
             ...prevValue,
             [name]: event.target.value,
           }))
@@ -111,7 +139,7 @@ const ColorInputField = ({
   formValues,
   setFormValues,
   ...restProps
-}: any) => {
+}: InputFieldProps) => {
   return (
     <div className="ExampleSheetWithKeyboard-colorInputWrapper" {...restProps}>
       <VisuallyHidden.Root asChild>
@@ -124,10 +152,10 @@ const ColorInputField = ({
         id={name}
         name={name}
         type={type}
-        // @ts-ignore
+        // @ts-expect-error Custom property access
         value={formValues[name]}
         onChange={(event) =>
-          setFormValues((prevValue: any) => ({
+          setFormValues((prevValue: FormData) => ({
             ...prevValue,
             [name]: event.target.value,
           }))
@@ -135,7 +163,7 @@ const ColorInputField = ({
       />
       <div
         className="ExampleSheetWithKeyboard-colorInputReplacement"
-        // @ts-ignore
+        // @ts-expect-error Custom CSS variable
         style={{ "--color": formValues[name] }}
       />
     </div>
@@ -264,7 +292,7 @@ const ExampleSheetWithKeyboard = () => {
                         name={formData.description.name}
                         rows={5}
                         placeholder={formData.description.placeholder}
-                        // @ts-ignore
+                        // @ts-expect-error Custom property access
                         value={formValues[formData.description.name]}
                         onChange={(event) =>
                           setFormValues((prevValue) => ({

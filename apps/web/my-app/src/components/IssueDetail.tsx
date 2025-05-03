@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from 'next/image';
 
 type StyleObject = {
   [key: string]: string | number | undefined;
@@ -269,12 +270,16 @@ const IssueDetail: React.FC<IssueDetailProps> = ({ issueId }) => {
       <div style={styles.headerBar} />
 
       {/* Issue image */}
-      <img
-        // Use a placeholder generation or actual image logic based on ID
-        src={`https://via.placeholder.com/400x267.png?text=Issue+${issueId}`}
-        alt={data.title}
-        style={styles.issueImage}
-      />
+      <div style={{ position: 'relative', width: '100%', height: '267px' }}>
+        <Image
+          // Use a placeholder generation or actual image logic based on ID
+          src={`https://via.placeholder.com/400x267.png?text=Issue+${issueId}`}
+          alt={data.title}
+          fill
+          style={{ objectFit: 'cover' }}
+          priority
+        />
+      </div>
 
       {/* Issue title */}
       <h1 style={styles.heading}>{data.title}</h1>

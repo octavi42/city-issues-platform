@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { animate } from 'animejs';
-import ExamplePage from "@/components/examples/Page/ExamplePage";
 import { categories as staticCategories } from '@/data/categories';
 import { fetchCategories } from '@/lib/neo4j-queries';
 import { Category } from '@/lib/neo4j-schema';
@@ -13,8 +12,6 @@ const INITIAL_COLLAPSED_HEIGHT = 'h-[4.5rem]';
 
 export default function Home() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const sheetQuery = searchParams.get('sheet');
 
   const [infoOpen, setInfoOpen] = useState(false);
   const infoContentRef = useRef<HTMLDivElement>(null);
@@ -156,7 +153,7 @@ export default function Home() {
                 <div className="text-lg font-normal leading-relaxed text-gray-500 tracking-normal py-3 rounded-lg mb-2">
                   <p>Cluj-Napoca is the second most populous city in Romania and the seat of Cluj County. Located in northwestern Romania, the city is situated approximately 450 kilometers from Bucharest.</p>
                   <br />
-                  <p>The city is one of the most important academic, cultural, industrial and business centers in Romania. Home to the country's largest university, Babeș-Bolyai University, Cluj is also a major IT and innovation hub in Eastern Europe.</p>
+                  <p>The city is one of the most important academic, cultural, industrial and business centers in Romania. Home to the country&apos;s largest university, Babeș-Bolyai University, Cluj is also a major IT and innovation hub in Eastern Europe.</p>
                 </div>
               </div>
               <div 
@@ -269,15 +266,15 @@ export default function Home() {
               ) : (
                 <>
                   <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
-                    <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
+                    <p className="text-lime-900 text-base">&ldquo;Lorem Ipsum is simply dummy text of the printing and typesetting industry.&rdquo;</p>
                   </div>
                   
                   <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
-                    <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
+                    <p className="text-lime-900 text-base">&ldquo;Lorem Ipsum is simply dummy text of the printing and typesetting industry.&rdquo;</p>
                   </div>
                   
                   <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
-                    <p className="text-lime-900 text-base">"Lorem Ipsum is simply dummy text of the printing and typesetting industry."</p>
+                    <p className="text-lime-900 text-base">&ldquo;Lorem Ipsum is simply dummy text of the printing and typesetting industry.&rdquo;</p>
                   </div>
                 </>
               )}

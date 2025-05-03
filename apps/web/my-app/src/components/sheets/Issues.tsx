@@ -33,16 +33,6 @@ export default function IssueSheetWrapper() {
     }
   }
 
-
-  // Create dummy data for the 'data' prop
-  const dummyData = {
-    id: "issue",
-    category: "slug",
-    title: `Issue dasdsa`,
-    description: 'This is dummy content for the issue.',
-    // Add other fields expected by ExampleSheetWithStackingProps if known
-  };
-
   return (
     <Sheet.Root 
       license="non-commercial" 
@@ -64,7 +54,7 @@ export default function IssueSheetWrapper() {
             className={`SheetWithStacking-content contentPlacement-${contentPlacement}`}
             >
             <div className="SheetWithStacking-innerContent">
-                <Issue data={dummyData} />
+                <Issue />
             </div>
             </Sheet.Content>
         </Sheet.View>

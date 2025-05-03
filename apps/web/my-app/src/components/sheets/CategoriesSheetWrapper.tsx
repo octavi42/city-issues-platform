@@ -66,7 +66,7 @@ export default function CategoriesSheetWrapper() {
               {/* Placeholder content - replace with actual categories content */}
               <div className="p-4 text-white">
                  Placeholder for Categories Content (e.g., CategoriesOverlay)
-                 Replace "aslkhdj" with your actual content.
+                 Replace &quot;aslkhdj&quot; with your actual content.
               </div>
               {/* aslkhdj - Assuming this was temporary */}
               <Sheet.Trigger

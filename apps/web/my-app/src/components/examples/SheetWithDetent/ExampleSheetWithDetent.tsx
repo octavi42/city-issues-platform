@@ -1,17 +1,22 @@
 "use client";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import {
   Sheet,
   Scroll,
   VisuallyHidden,
-  useClientMediaQuery,
 } from "@silk-hq/components";
 
 import { SheetWithDetent } from "./SheetWithDetent";
 import { SheetTriggerCard } from "@/components/app/SheetTriggerCard/SheetTriggerCard";
 import "./ExampleSheetWithDetent.css";
 
-const contacts = [
+interface Contact {
+  id: number;
+  username: string;
+  company: string;
+}
+
+const contacts: Contact[] = [
   {
     id: 1,
     username: "Emma Schmidt",
@@ -133,7 +138,7 @@ const ExampleSheetWithDetent = () => {
               }}
             >
               <Scroll.Content className="ExampleSheetWithDetent-scrollContent">
-                {filteredContacts.map((contact: any) => (
+                {filteredContacts.map((contact: Contact) => (
                   <div
                     key={contact.id}
                     className="ExampleSheetWithDetent-contactContainer"

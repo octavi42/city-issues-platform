@@ -1,11 +1,21 @@
-import React, { useContext } from "react";
-import { Scroll, Sheet } from "@silk-hq/components";
+import React from "react";
+import { Scroll } from "@silk-hq/components";
 import { Sidebar } from "./Sidebar";
 import "./ExampleSidebar.css";
 
 import { SheetTriggerCard } from "@/components/app/SheetTriggerCard/SheetTriggerCard";
 
-const data = [
+interface NavItem {
+  name: string;
+  icon: React.ReactNode;
+}
+
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const data: NavGroup[] = [
   {
     title: "Dashboard",
     items: [
@@ -477,12 +487,12 @@ const ExampleSidebar = () => {
           <Scroll.Root asChild>
             <Scroll.View>
               <Scroll.Content className="ExampleSidebar-scrollContent">
-                {data.map((list: any, index: number) => (
+                {data.map((list: NavGroup, index: number) => (
                   <div className="ExampleSidebar-listGroup" key={index}>
                     <h3 className="ExampleSidebar-listTitle">{list.title}</h3>
                     <ul className="ExampleSidebar-list">
                       {list.items.map(
-                        (item: { name: string; icon: React.ReactNode }) => (
+                        (item: NavItem) => (
                           <li className="ExampleSidebar-item" key={item.name}>
                             <div className="ExampleSidebar-itemIcon">
                               {item.icon}

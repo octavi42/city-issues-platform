@@ -7,10 +7,10 @@ import ExamplePage from "@/components/examples/Page/ExamplePage";
 // Import categories data from an external file to reuse the same data
 import { categories } from '@/data/categories';
 
-interface CategoryType {
+// Define category data structure based on actual usage
+interface CategoryData {
   name: string;
   slug: string;
-  img: string;
   description: string;
   stats: {
     reported: number;
@@ -83,7 +83,7 @@ export default function CategoriesOverlay({ onClose }: CategoriesOverlayProps) {
         
         {/* Category Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {categories.map((category: any) => (
+          {categories.map((category: CategoryData) => (
             <div 
               key={category.slug}
               className="relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200"

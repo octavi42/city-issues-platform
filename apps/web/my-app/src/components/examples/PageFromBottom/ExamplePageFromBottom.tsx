@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React from "react";
 import { Scroll, Sheet } from "@silk-hq/components";
 
 import "./ExamplePageFromBottom.css";
@@ -47,8 +47,8 @@ const ExamplePageFromBottom = () => {
                       toward a more intentional, thoughtful use of space. As
                       urban centers grow and land becomes more valuable, the
                       need for efficient, clean, and flexible environments has
-                      never been more critical. But minimalism isn't just about
-                      reducing clutter; it’s a philosophy that encourages
+                      never been more critical. But minimalism isn&apos;t just about
+                      reducing clutter; it&apos;s a philosophy that encourages
                       simplicity, tranquility, and a connection to the
                       essentials of living.
                     </p>
@@ -58,9 +58,9 @@ const ExamplePageFromBottom = () => {
                       principles, particularly those of the Bauhaus movement,
                       which sought to eliminate ornamentation and focus on
                       functional beauty. Architects like Ludwig Mies van der
-                      Rohe, with his famous aphorism "Less is more," laid the
+                      Rohe, with his famous aphorism &quot;Less is more,&quot; laid the
                       groundwork for the minimalist approach we recognize today.
-                      However, the term "minimalism" has evolved in both meaning
+                      However, the term &quot;minimalism&quot; has evolved in both meaning
                       and execution, incorporating elements of sustainability,
                       flexibility, and even spirituality into its design ethos.
                       As a result, minimalist architecture today serves both an
@@ -105,7 +105,7 @@ const ExamplePageFromBottom = () => {
                       encourage users to focus on the essentials, be it a piece
                       of furniture, an artwork, or even the sheer quality of
                       light entering the room. This fosters a deeper connection
-                      to one’s environment and promotes a more intentional
+                      to one&apos;s environment and promotes a more intentional
                       lifestyle.
                     </p>
 

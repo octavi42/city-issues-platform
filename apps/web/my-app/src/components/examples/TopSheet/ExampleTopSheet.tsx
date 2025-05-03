@@ -1,5 +1,5 @@
 "use client";
-import React, { useContext } from "react";
+import React from "react";
 import { Sheet } from "@silk-hq/components";
 import { TopSheet } from "./TopSheet";
 import "./ExampleTopSheet.css";
@@ -25,7 +25,7 @@ const ExampleTopSheet = () => {
             <div className="ExampleTopSheet-illustration" />
             <Sheet.Description className="ExampleTopSheet-description">
               Your dream home, Serene Haven, is ready for you. A rare blend of
-              luxury and charm—don’t miss it!
+              luxury and charm—don&apos;t miss it!
             </Sheet.Description>
             <Sheet.Trigger
               className="ExampleTopSheet-validateTrigger"

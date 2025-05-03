@@ -5,7 +5,8 @@ import { Sheet, Scroll } from "@silk-hq/components";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Avatar } from "../../../components/ui/avatar";
-import { MessageSquare, Calendar, MapPin, AlertTriangle, ChevronDown, X } from "lucide-react";
+import { MessageSquare, Calendar, MapPin, AlertTriangle, X } from "lucide-react";
+import Image from "next/image";
 
 import {
   SheetWithStackingStack,
@@ -15,14 +16,33 @@ import {
 
 import { SheetTriggerCard } from "../../app/SheetTriggerCard/SheetTriggerCard";
 
+interface Comment {
+  user: string;
+  date: string;
+  text: string;
+}
+
+interface SheetData {
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  severity?: string;
+  date?: string;
+  location?: string;
+  user?: string;
+  suggestions?: string[];
+  comments?: Comment[];
+  nestedSheet?: SheetData;
+}
+
 interface ExampleSheetWithStackingProps {
-  data: any;
+  data: SheetData;
   trigger?: React.ReactNode;
   onClose?: () => void;
 }
 
 // Sample comments to display when no comments are provided
-const sampleComments = [
+const sampleComments: Comment[] = [
   {
     user: "Sarah J.",
     date: "Today",
@@ -40,7 +60,7 @@ const sampleComments = [
   }
 ];
 
-const ExampleSheetWithStackingView = ({ data }: any) => {
+const ExampleSheetWithStackingView = ({ data }: { data: SheetData }) => {
   const [isReady, setIsReady] = useState(false);
   const mountedRef = useRef(false);
   
@@ -66,7 +86,7 @@ const ExampleSheetWithStackingView = ({ data }: any) => {
       }, 10);
   }, [isReady]);
 
-  const handleScroll = useCallback(({ distance }: { distance: number }) => {
+  const handleScroll = useCallback(() => {
     if (!isReady) return;
     // Handle scroll
   }, [isReady]);
@@ -86,7 +106,7 @@ const ExampleSheetWithStackingView = ({ data }: any) => {
   };
 
   // Use provided comments or sample comments
-  const comments = data.comments?.length > 0 ? data.comments : sampleComments;
+  const comments = data.comments && data.comments.length > 0 ? data.comments : sampleComments;
 
   return (
     <SheetWithStackingView onTravelStatusChange={travelStatusChangeHandler}>
@@ -99,11 +119,14 @@ const ExampleSheetWithStackingView = ({ data }: any) => {
           <Scroll.Content className="pb-32">
             {/* Header image - scrolls with content */}
             <div className="w-full aspect-[3/2] bg-gray-50 mb-16">
-              <img 
-                src={data.imageUrl || "https://placehold.co/600x400/e6e6e6/a6a6a6?text=Issue+Image"} 
-                alt={data.name} 
-                className="w-full h-full object-cover"
-              />
+              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                <Image 
+                  src={data.imageUrl || "https://placehold.co/600x400/e6e6e6/a6a6a6?text=Issue+Image"} 
+                  alt={data.name || 'Issue image'} 
+                  fill
+                  style={{ objectFit: 'cover' }}
+                />
+              </div>
             </div>
             
             {/* Main content with distinct spacing between sections */}
@@ -206,7 +229,7 @@ const ExampleSheetWithStackingView = ({ data }: any) => {
                 
                 {/* Comments list */}
                 <div className="space-y-5 pb-3">
-                  {comments.map((comment: any, i: number) => (
+                  {comments.map((comment: Comment, i: number) => (
                     <div key={i} className="p-1">
                       <div className="bg-gray-50 rounded-xl p-2">
                         <div className="flex items-center justify-between pb-3">

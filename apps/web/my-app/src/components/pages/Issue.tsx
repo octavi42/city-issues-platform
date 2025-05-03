@@ -2,20 +2,40 @@
 
 import { useCallback, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from 'next/navigation';
-import { Sheet, Scroll } from "@silk-hq/components";
+import { Sheet } from "@silk-hq/components";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageSquare, Calendar, MapPin, AlertTriangle, ChevronDown, X } from "lucide-react";
+import { MessageSquare, Calendar, MapPin, AlertTriangle, X } from "lucide-react";
 import { fetchDetectionEventById, fetchPhotoByEventId } from "@/lib/neo4j-queries";
 import { DetectionEvent } from "@/lib/neo4j-schema";
 import { format } from "date-fns";
+import Image from "next/image";
 
-interface ExampleSheetWithStackingProps {
-  data: any;
-  trigger?: React.ReactNode;
-  onClose?: () => void;
+interface PhotoData {
+  photo_id?: string;
+  url?: string;
+  created_at?: string;
+  event_id?: string;
+}
+
+interface Comment {
+  user: string;
+  date: string;
+  text: string;
+}
+
+interface IssueData {
+  name: string;
+  description: string;
+  imageUrl: string;
+  severity: string;
+  date: string;
+  location: string;
+  user: string;
+  suggestions: string[];
+  comments: Comment[];
 }
 
 // Sample comments to display when no comments are provided
@@ -37,16 +57,14 @@ const sampleComments = [
   }
 ];
 
-
 const Issue = () => {
     const router = useRouter();
     const pathname = usePathname();
-    const [isReady, setIsReady] = useState(false);
     const mountedRef = useRef(false);
     const [loading, setLoading] = useState(true);
     const [eventData, setEventData] = useState<DetectionEvent | null>(null);
-    const [photoData, setPhotoData] = useState<any>(null);
-    const [issueData, setIssueData] = useState({
+    const [photoData, setPhotoData] = useState<PhotoData | null>(null);
+    const [issueData, setIssueData] = useState<IssueData>({
       name: "Loading...",
       description: "",
       imageUrl: "",
@@ -59,19 +77,17 @@ const Issue = () => {
     });
     
     // Extract event ID from the path
-    const getEventIdFromPath = () => {
+    const getEventIdFromPath = useCallback(() => {
       // Extract the last part of the path (after the last slash)
       const pathParts = pathname.split('/');
       return pathParts[pathParts.length - 1];
-    };
+    }, [pathname]);
     
     // Ensure component is mounted before animations run
     useEffect(() => {
-      setIsReady(true);
       mountedRef.current = true;
       
       return () => {
-        setIsReady(false);
         mountedRef.current = false;
       };
     }, []);
@@ -138,23 +154,7 @@ const Issue = () => {
       };
       
       fetchEventData();
-    }, [pathname]);
-    
-    const travelStatusChangeHandler = useCallback((travelStatus: string) => {
-      if (!mountedRef.current || !isReady) return;
-      
-      if (travelStatus === "idleOutside")
-        setTimeout(() => {
-          if (mountedRef.current) {
-            // Handle idle state
-          }
-        }, 10);
-    }, [isReady]);
-  
-    const handleScroll = useCallback(({ distance }: { distance: number }) => {
-      if (!isReady) return;
-      // Handle scroll
-    }, [isReady]);
+    }, [pathname, getEventIdFromPath]);
   
     // Get severity badge style
     const getSeverityColor = (severity: string) => {
@@ -245,12 +245,13 @@ const Issue = () => {
             ) : (
               <>
                 {/* Header image - scrolls with content */}
-                <div className="w-full aspect-[3/2] bg-gray-50 mb-16 z-[100]">
-                <img 
+                <div className="w-full aspect-[3/2] bg-gray-50 mb-16 z-[100] relative">
+                  <Image 
                     src={issueData.imageUrl || "https://placehold.co/600x400/e6e6e6/a6a6a6?text=Issue+Image"} 
                     alt={issueData.name} 
-                    className="w-full h-full object-cover"
-                />
+                    fill
+                    className="object-cover"
+                  />
                 </div>
                 
                 {/* Main content with distinct spacing between sections */}
@@ -382,7 +383,7 @@ const Issue = () => {
                     
                     {/* Comments list */}
                     <div className="space-y-5 pb-3">
-                    {comments.map((comment: any, i: number) => (
+                    {comments.map((comment: Comment, i: number) => (
                         <div key={i} className="p-1">
                         <div className="bg-gray-50 rounded-xl p-2">
                             <div className="flex items-center justify-between pb-3">

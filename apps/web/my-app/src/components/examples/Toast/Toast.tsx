@@ -17,7 +17,7 @@ const Toast = ({ presentTrigger, sheetContent, ...restProps }: Props) => {
    const [presented, setPresented] = useState(false);
    const [pointerOver, setPointerOver] = useState(false);
    const [travelStatus, setTravelStatus] = useState("idleOutside");
-   const autoCloseTimeout = useRef<ReturnType<typeof setTimeout> | undefined>();
+   const autoCloseTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
    useEffect(() => {
       const startAutoCloseTimeout = () => {
          autoCloseTimeout.current = setTimeout(() => setPresented(false), 5000);

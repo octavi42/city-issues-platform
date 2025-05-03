@@ -1,5 +1,4 @@
 import * as React from "react";
-import * as SeparatorPrimitive from "@silk-hq/components";
 import { cn } from "../../lib/utils";
 
 const Separator = React.forwardRef<

@@ -1,5 +1,4 @@
 "use client";
-import { useContext } from "react";
 import { Sheet } from "@silk-hq/components";
 import { Toast } from "./Toast";
 import "./ExampleToast.css";
@@ -17,7 +16,7 @@ const ExampleToast = () => {
             Message from Luca
           </Sheet.Title>
           <Sheet.Description className="ExampleToast-description">
-            How about Japanese? I’m good to meet up at 8.
+            How about Japanese? I&apos;m good to meet up at 8.
           </Sheet.Description>
         </div>
       }

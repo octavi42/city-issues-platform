@@ -1,12 +1,11 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import React, { CSSProperties, useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import '../../components/examples/Page/ExamplePage.css';
 import '../../components/examples/Page/Page.css';
 
 import { Sheet } from "@silk-hq/components";
-import { ExampleSheetWithStacking } from '@/components/examples/SheetWithStacking/ExampleSheetWithStacking';
 import Category from '../pages/Category';
 
 export default function CategorySheetWrapper() {

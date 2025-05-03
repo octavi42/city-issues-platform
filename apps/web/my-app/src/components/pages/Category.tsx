@@ -1,11 +1,46 @@
 //import liraries
-import React, { Component } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { CSSProperties, useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import { fetchCategories, fetchDetectionEventsByCategory, fetchPhotosWithDetectionEvents } from '@/lib/neo4j-queries';
 import { Category as CategoryType, DetectionEvent } from '@/lib/neo4j-schema';
 import { Skeleton } from "@/components/ui/skeleton";
+
+// Define interfaces for image data
+interface ContentItem {
+    username: string;
+    handle: string;
+    hoursPast: number;
+    content: string[];
+    commentsCount: number;
+    sharesCount: number;
+    likesCount: number;
+}
+
+interface PhotoData {
+    url: string;
+    photo_id?: string;
+    location?: string;
+    captured_at?: string;
+    [key: string]: unknown;
+}
+
+interface ImageData {
+    id: number;
+    imageUrl: string;
+    issueText: string;
+    name: string;
+    handle: string;
+    followers: number;
+    following: number;
+    posts: number;
+    bio: string;
+    daysAgo: number;
+    reportsCount: number;
+    severity?: string;
+    eventId?: string;
+    content: ContentItem[];
+}
 
 // create a component
 const Category = () => {
@@ -15,9 +50,9 @@ const Category = () => {
     
     // State and refs for image visibility
     const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
-    const [imageDataList, setImageDataList] = useState<any[]>([]);
+    const [imageDataList, setImageDataList] = useState<ImageData[]>([]);
     const [detectionEvents, setDetectionEvents] = useState<DetectionEvent[]>([]);
-    const [photosWithEvents, setPhotosWithEvents] = useState<any[]>([]);
+    const [photosWithEvents, setPhotosWithEvents] = useState<{photo: PhotoData; event: DetectionEvent}[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [categoryData, setCategoryData] = useState({
         title: "",
@@ -82,7 +117,17 @@ const Category = () => {
                 
                 const photosAndEvents = await fetchPhotosWithDetectionEvents(slug);
                 console.log("Photos with detection events for category:", photosAndEvents);
-                setPhotosWithEvents(photosAndEvents);
+                
+                // Transform the data to ensure url is never undefined
+                const transformedData = photosAndEvents.map(item => ({
+                    photo: {
+                        ...item.photo,
+                        url: item.photo.url || `/images/${slug}.jpg` // Provide a default URL if undefined
+                    },
+                    event: item.event
+                }));
+                
+                setPhotosWithEvents(transformedData);
                 
                 // Also fetch standalone detection events as a fallback
                 const events = await fetchDetectionEventsByCategory(slug);
@@ -96,10 +141,75 @@ const Category = () => {
         fetchPhotosAndEvents();
     }, [slug]);
 
+    // Fallback mock data generator - wrapped in useCallback to prevent infinite loops
+    const generateMockData = useCallback(() => {
+        const baseIssueContent = [
+            "Large pothole on Main Street",
+            "Dangerous crater on 5th Avenue",
+            "Multiple potholes near school zone",
+            "Deep pothole causing accidents",
+            "Road damage after recent storm",
+            "Pothole needs urgent repair",
+            "Growing pothole on busy intersection",
+            "Multiple tire damages reported"
+        ];
+
+        const baseImageUrls = [
+            "/images/pothole1.jpg",
+            "/images/pothole2.jpg",
+            "/images/pothole3.jpg",
+            "/images/pothole4.jpg",
+            "/images/pothole5.jpg",
+            "/images/pothole6.jpg",
+            "/images/pothole7.jpg",
+            "/images/pothole8.jpg"
+        ];
+
+        const issues = baseIssueContent.length > 0 ? baseIssueContent : [];
+        const images = baseImageUrls.length > 0 ? baseImageUrls : Array(8).fill(categoryData.slug ? `/images/${categoryData.slug}.jpg` : '');
+
+        const generatedData = issues.map((issueText, index) => {
+            const item = index + 1;
+            return {
+                id: item,
+                imageUrl: images[index],
+                issueText: issueText,
+                name: issueText || `${categoryData.slug} image ${item}`,
+                handle: `image_${item}`,
+                followers: Math.floor(Math.random() * 1000),
+                following: Math.floor(Math.random() * 500),
+                posts: Math.floor(Math.random() * 100),
+                bio: `This is ${categoryData.slug} image ${item} description`,
+                daysAgo: Math.floor(Math.random() * 10) + 1,
+                reportsCount: Math.floor(Math.random() * 15) + 1,
+                content: [
+                    {
+                        username: `${categoryData.slug} image ${item}`,
+                        handle: `image_${item}`,
+                        hoursPast: Math.floor(Math.random() * 24),
+                        content: [`Details about ${categoryData.slug} image ${item}`],
+                        commentsCount: Math.floor(Math.random() * 50),
+                        sharesCount: Math.floor(Math.random() * 30),
+                        likesCount: Math.floor(Math.random() * 100)
+                    }
+                ]
+            };
+        });
+        
+        // Only set loading to false if we actually have data
+        if (generatedData.length > 0) {
+            setImageDataList(generatedData);
+            // Small delay to ensure data is fully processed before showing
+            setTimeout(() => {
+                setIsLoading(false);
+            }, 300);
+        }
+    }, [categoryData.slug, setImageDataList, setIsLoading]);
+
     // Generate image data from photos and detection events
     useEffect(() => {
         // Add a small offset time after data is loaded
-        const finishLoading = (data: any[]) => {
+        const finishLoading = (data: ImageData[]) => {
             setImageDataList(data);
             // Small delay to ensure data is fully processed before showing
             setTimeout(() => {
@@ -180,78 +290,12 @@ const Category = () => {
             // Fallback to mock data if no events
             generateMockData();
         }
-        // Don't set loading to false if we don't have data yet
         
         // Cleanup any lingering timeouts when component unmounts
         return () => {
             clearTimeout(finishLoading as unknown as number);
         };
-    }, [photosWithEvents, detectionEvents, categoryData]);
-
-    // Fallback mock data generator
-    const generateMockData = () => {
-        const baseIssueContent = [
-            "Large pothole on Main Street",
-            "Dangerous crater on 5th Avenue",
-            "Multiple potholes near school zone",
-            "Deep pothole causing accidents",
-            "Road damage after recent storm",
-            "Pothole needs urgent repair",
-            "Growing pothole on busy intersection",
-            "Multiple tire damages reported"
-        ];
-
-        const baseImageUrls = [
-            "/images/pothole1.jpg",
-            "/images/pothole2.jpg",
-            "/images/pothole3.jpg",
-            "/images/pothole4.jpg",
-            "/images/pothole5.jpg",
-            "/images/pothole6.jpg",
-            "/images/pothole7.jpg",
-            "/images/pothole8.jpg"
-        ];
-
-        const issues = baseIssueContent.length > 0 ? baseIssueContent : [];
-        const images = baseImageUrls.length > 0 ? baseImageUrls : Array(8).fill(categoryData.slug ? `/images/${categoryData.slug}.jpg` : '');
-
-        const generatedData = issues.map((issueText, index) => {
-            const item = index + 1;
-            return {
-                id: item,
-                imageUrl: images[index],
-                issueText: issueText,
-                name: issueText || `${categoryData.slug} image ${item}`,
-                handle: `image_${item}`,
-                followers: Math.floor(Math.random() * 1000),
-                following: Math.floor(Math.random() * 500),
-                posts: Math.floor(Math.random() * 100),
-                bio: `This is ${categoryData.slug} image ${item} description`,
-                daysAgo: Math.floor(Math.random() * 10) + 1,
-                reportsCount: Math.floor(Math.random() * 15) + 1,
-                content: [
-                    {
-                        username: `${categoryData.slug} image ${item}`,
-                        handle: `image_${item}`,
-                        hoursPast: Math.floor(Math.random() * 24),
-                        content: [`Details about ${categoryData.slug} image ${item}`],
-                        commentsCount: Math.floor(Math.random() * 50),
-                        sharesCount: Math.floor(Math.random() * 30),
-                        likesCount: Math.floor(Math.random() * 100)
-                    }
-                ]
-            };
-        });
-        
-        // Only set loading to false if we actually have data
-        if (generatedData.length > 0) {
-            setImageDataList(generatedData);
-            // Small delay to ensure data is fully processed before showing
-            setTimeout(() => {
-                setIsLoading(false);
-            }, 300);
-        }
-    };
+    }, [photosWithEvents, detectionEvents, categoryData.title, categoryData.slug, generateMockData]);
 
     // Skeleton loader for the image grid
     const renderSkeletonGrid = () => {
@@ -313,11 +357,14 @@ const Category = () => {
                                     router.push(`/issue/${issueId}`);
                                 }}
                             >
-                                <img 
-                                    src={imageData.imageUrl} 
-                                    alt={imageData.issueText} 
-                                    className="w-full h-auto object-cover" 
-                                />
+                                <div className="relative w-full h-40">
+                                    <Image 
+                                        src={imageData.imageUrl} 
+                                        alt={imageData.issueText} 
+                                        fill
+                                        style={{ objectFit: 'cover' }}
+                                    />
+                                </div>
                                 <div className="overlay p-3">
                                     <div className="title font-bold">
                                         {imageData.issueText}
@@ -351,11 +398,14 @@ const Category = () => {
                                     router.push(`/issue/${issueId}`);
                                 }}
                             >
-                                <img 
-                                    src={imageData.imageUrl} 
-                                    alt={imageData.issueText} 
-                                    className="w-full h-auto object-cover" 
-                                />
+                                <div className="relative w-full h-40">
+                                    <Image 
+                                        src={imageData.imageUrl} 
+                                        alt={imageData.issueText} 
+                                        fill
+                                        style={{ objectFit: 'cover' }}
+                                    />
+                                </div>
                                 <div className="overlay p-3">
                                     <div className="title font-bold">
                                         {imageData.issueText}
