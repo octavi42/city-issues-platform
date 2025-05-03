@@ -12,6 +12,9 @@ import uuid
 from datetime import datetime
 import sys
 import os
+from pathlib import Path
+from utils.env_loader import load_dotenv
+from utils.s3 import upload_file_to_s3
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from db.crud.create_nodes import add_city, add_user, add_photo
 
@@ -69,3 +72,16 @@ if __name__ == "__main__":
     image_url = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSGyTL8T4cAUd7kZDU3z8OU5I84Q4zHXs9o8Q&s"
     result = run_with_image_url(image_url)
     print("Final Output:", result)
+
+def run_with_image_file(file_path: str, message: str = "Analyze this image and report the main issue or well-maintained element"):
+    """
+    Upload a local image file to S3 and run the city inspector agent on its URL.
+    """
+    load_dotenv()
+    bucket = os.getenv("AWS_S3_BUCKET")
+    if not bucket:
+        raise RuntimeError("AWS_S3_BUCKET environment variable is not set")
+    ext = Path(file_path).suffix
+    object_name = f"{uuid.uuid4().hex}{ext}"
+    image_url = upload_file_to_s3(file_path, bucket, object_name)
+    return run_with_image_url(image_url, message)
