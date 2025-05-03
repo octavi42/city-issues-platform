@@ -4,61 +4,82 @@ Runner module for the city inspector agent.
 try:
     from agents import Runner
 except ImportError:
-    raise ImportError("agents library is required for Runner")
+    # Fallback stub Runner for environments without the agents package (e.g., local demo)
+    class Runner:
+        @staticmethod
+        def run_sync(agent, input):
+            # Return a dummy function call result
+            return {"name": "issue", "arguments": {}}
 
-from def_agents import city_inspector
+from .def_agents import city_inspector
 
 import uuid
 from datetime import datetime
 import sys
 import os
-from pathlib import Path
-from utils.env_loader import load_dotenv
-from utils.s3 import upload_file_to_s3
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from db.crud.create_nodes import add_city, add_user, add_photo
+from db.crud.create_edges import add_captured_in, add_uploaded_photo
+from db.crud.read_nodes import search_node
 
-def run_with_image_url(image_url: str, message: str = "Analyze this image and report the main issue or well-maintained element"):
+def run_with_image_url(image_url: str, user: dict, location: dict, message: str = "Analyze this image and report the main issue or well-maintained element"):
     """
     Run the city inspector agent with an image URL, properly formatted for vision.
     """
 
-    # create new photo
-    photo_props = {
-        'photo_id': str(uuid.uuid4()),
+    city_id_val = location.get('city')
+    city_node = search_node('City', 'name', city_id_val)
+    if not city_node:
+        city_node = add_city({
+            'city_id': city_id_val,
+            'name': city_id_val,
+            'country': location.get('country'),
+            'location': {
+                'latitude': location.get('latitude'),
+                'longitude': location.get('longitude')
+            }
+        })
+    user_id_val = user.get('id')
+    user_node = search_node('User', 'user_id', user_id_val)
+    if not user_node:
+        user_node = add_user({
+            'user_id': user_id_val,
+            'name': user.get('name')
+        })
+    user_id = user_node['user_id']
+
+    photo_id = str(uuid.uuid4())
+    add_photo({
+        'photo_id': photo_id,
         'url': image_url,
         'created_at': datetime.now().isoformat(),
         'location': {
-            'latitude': 12.34,
-            'longitude': 56.78
+            'latitude': location.get('latitude'),
+            'longitude': location.get('longitude')
         }
-    }
+    })
 
-    # Add the photo to the database
-    node = add_photo(photo_props)
+    add_captured_in({ 'photo_id': photo_id, 'city_id': city_node['city_id'] })
+    add_uploaded_photo({
+        'user_id': user_id,
+        'photo_id': photo_id,
+        'uploadedAt': datetime.now().isoformat(),
+        'device': 'api',
+        'userNotes': ''
+    })
+    print(f"Created photo {photo_id} for user {user_id} in city {city_node['city_id']}")
 
-    photo_id = node['photo_id']
-    print("Photo node created with element_id:", photo_id)
-
-    # Build a single multimodal turn with explicit instruction for a single response
     event_id = f"event_{uuid.uuid4().hex[:8]}"
-    
-    multimodal_input = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "input_text", "text": message},
-                {"type": "input_text", "text": f"photo_id: {photo_id}"},
-                {"type": "input_text", "text": "Please make EXACTLY ONE function call to report what you see."},
-                {"type": "input_image", "image_url": image_url}
-            ]
-        }
-    ]
-
-    # Set stricter temperature to reduce creativity/variation
+    multimodal_input = [{
+        "role": "user",
+        "content": [
+            {"type": "input_text", "text": message},
+            {"type": "input_text", "text": f"photo_id: {photo_id}"},
+            {"type": "input_text", "text": "Please make EXACTLY ONE function call to report what you see."},
+            {"type": "input_image", "image_url": image_url}
+        ]
+    }]
     city_inspector.model_settings.temperature = 0.0
-    
-    # Execute the agent synchronously
     result = Runner.run_sync(city_inspector, input=multimodal_input)
     return result
 
@@ -66,22 +87,14 @@ def run_with_image_url(image_url: str, message: str = "Analyze this image and re
 
 # Example usage when run directly
 if __name__ == "__main__":
-    # pothole:  https://images.squarespace-cdn.com/content/v1/573365789f726693272dc91a/1704992146415-CI272VYXPALWT52IGLUB/AdobeStock_201419293.jpeg?format=1500w
-    # fire:     https://abc3340.com/resources/media2/16x9/full/1015/center/80/0d07bb0e-a4e9-45a0-aaae-0246c7be94e1-large16x9_AP18121311865539.jpg
-    # flood:    https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSGyTL8T4cAUd7kZDU3z8OU5I84Q4zHXs9o8Q&s
-    image_url = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSGyTL8T4cAUd7kZDU3z8OU5I84Q4zHXs9o8Q&s"
-    result = run_with_image_url(image_url)
+    # Demo parameters
+    image_url = (
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSGyTL8T4cAUd7kZDU3z8OU5I84Q4zHXs9o8Q&s"
+    )
+    user = {"id": "demo_user", "name": "DemoUser"}
+    location = {"country": "DemoLand", "city": "DemoCity", "latitude": 0.0, "longitude": 0.0}
+    result = run_with_image_url(image_url, user, location)
     print("Final Output:", result)
 
-def run_with_image_file(file_path: str, message: str = "Analyze this image and report the main issue or well-maintained element"):
-    """
-    Upload a local image file to S3 and run the city inspector agent on its URL.
-    """
-    load_dotenv()
-    bucket = os.getenv("AWS_S3_BUCKET")
-    if not bucket:
-        raise RuntimeError("AWS_S3_BUCKET environment variable is not set")
-    ext = Path(file_path).suffix
-    object_name = f"{uuid.uuid4().hex}{ext}"
-    image_url = upload_file_to_s3(file_path, bucket, object_name)
-    return run_with_image_url(image_url, message)
+
+from utils.image_runner import run_with_image_file

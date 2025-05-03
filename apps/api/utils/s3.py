@@ -4,8 +4,13 @@ Utilities for Amazon S3 interactions.
 import os
 from pathlib import Path
 
-import boto3
-from botocore.exceptions import ClientError
+try:
+    import boto3
+    from botocore.exceptions import ClientError
+except ImportError:
+    boto3 = None
+    class ClientError(Exception):
+        pass
 
 from .env_loader import load_dotenv
 
@@ -13,6 +18,10 @@ def get_s3_client():
     """
     Initialize and return an S3 client using credentials from environment variables.
     """
+    if boto3 is None:
+        raise ImportError(
+            "boto3 library is required for S3 operations. Please install it via 'pip install boto3'."
+        )
     load_dotenv()
     aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
     aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
@@ -37,7 +46,13 @@ def upload_file_to_s3(file_path: str, bucket: str, object_name: str = None) -> s
         object_name = Path(file_path).name
     s3_client = get_s3_client()
     try:
-        s3_client.upload_file(str(file_path), bucket, object_name)
+        # Upload file and set public-read ACL for public access
+        s3_client.upload_file(
+            str(file_path),
+            bucket,
+            object_name,
+            ExtraArgs={ 'ACL': 'public-read' }
+        )
     except ClientError as e:
         raise RuntimeError(
             f"Failed to upload {file_path} to s3://{bucket}/{object_name}: {e}"
