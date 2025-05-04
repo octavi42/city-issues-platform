@@ -19,7 +19,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from db.crud.create_nodes import add_city, add_user, add_photo
-from db.crud.create_edges import add_captured_in, add_uploaded_photo
+from db.crud.create_edges import add_uploaded_photo
 from db.crud.read_nodes import search_node
 
 def run_with_image_url(image_url: str, user: dict, location: dict, message: str = "Analyze this image and report the main issue or well-maintained element"):
@@ -59,7 +59,6 @@ def run_with_image_url(image_url: str, user: dict, location: dict, message: str 
         }
     })
 
-    add_captured_in({ 'photo_id': photo_id, 'city_id': city_node['city_id'] })
     add_uploaded_photo({
         'user_id': user_id,
         'photo_id': photo_id,
@@ -67,13 +66,14 @@ def run_with_image_url(image_url: str, user: dict, location: dict, message: str 
         'device': 'api',
         'userNotes': ''
     })
-    print(f"Created photo {photo_id} for user {user_id} in city {city_node['city_id']}")
+    print(f"Created photo {photo_id} for user {user_id}")
 
     event_id = f"event_{uuid.uuid4().hex[:8]}"
     multimodal_input = [{
         "role": "user",
         "content": [
             {"type": "input_text", "text": message},
+            {"type": "input_text", "text": f"city_id: {city_node['city_id']}"},
             {"type": "input_text", "text": f"photo_id: {photo_id}"},
             {"type": "input_text", "text": "Please make EXACTLY ONE function call to report what you see."},
             {"type": "input_image", "image_url": image_url}

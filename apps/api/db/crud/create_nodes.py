@@ -49,6 +49,20 @@ def add_city(props: dict) -> dict:
 
 def add_detection_event(props: dict) -> dict:
     return add_node("DetectionEvent", "event_id", props)
+ 
+def add_issue(props: dict) -> dict:
+    """
+    Create or update an Issue node with the given properties.
+    Uses 'event_id' as the unique identifier property.
+    """
+    return add_node("Issue", "event_id", props)
+
+def add_maintenance(props: dict) -> dict:
+    """
+    Create or update a Maintenance node with the given properties.
+    Uses 'event_id' as the unique identifier property.
+    """
+    return add_node("Maintenance", "event_id", props)
 
 def add_photo(props: dict) -> dict:
     return add_node("Photo", "photo_id", props)

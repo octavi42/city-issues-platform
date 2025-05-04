@@ -2,6 +2,7 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "city_id":           { "type": "string", "description": "ID of the city where the maintenance was recorded" },
     "event_id":           { "type": "string" },
     "description":        { "type": "string" },
     "inspected_at":       { "type": "string" },
@@ -11,6 +12,7 @@
     "condition_score":    { "type": "number" }
   },
   "required": [
+    "city_id",
     "event_id",
     "description",
     "inspected_at",

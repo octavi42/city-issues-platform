@@ -19,8 +19,8 @@ _SCHEMA_DIR = Path(__file__).parents[1] / "schemas"
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from db.crud.read_nodes import read_nodes
-from db.crud.create_nodes import add_city, add_user, add_photo, add_detection_event, add_category
-from db.crud.create_edges import add_in_category, add_triggers_event
+from db.crud.create_nodes import add_city, add_user, add_photo, add_issue, add_maintenance, add_category
+from db.crud.create_edges import add_relationship
 from db.crud.read_nodes import search_node
 
 def _load(name):
@@ -40,8 +40,8 @@ def _load(name):
                 category_names.append(node["category_id"])
     
     # Make sure the enum always has at least one value to satisfy validation
-    if not category_names:
-        category_names = ["other"]
+    # if not category_names:
+    #     category_names = ["other"]
     
     # Set the enum values
     schema["properties"]["category"]["enum"] = category_names
@@ -104,8 +104,8 @@ async def run_iss_function(ctx: RunContextWrapper, args):
             'severity_score': params.get('severity_score'),
             'status': params.get('status'),
         }
-        # Add the event to the database
-        event = add_detection_event({
+        # Create the Issue event in the database
+        event = add_issue({
             'event_id': uuid.uuid4().hex[:8],
             'reported_at': datetime.now().isoformat(),
             **event_props
@@ -114,21 +114,35 @@ async def run_iss_function(ctx: RunContextWrapper, args):
         event_id = event["event_id"]
         category_id = category_node["category_id"]
         
-        add_in_category({
-            'event_id': event_id,
-            'category_id': category_id
-        })
+        # Link Issue to its Category
+        add_relationship(
+            "Issue", "event_id", event_id,
+            "IN_CATEGORY",
+            "Category", "category_id", category_id
+        )
 
-        # Add the photo to the event
+        # Link Photo to Issue if provided
         photo_id = params.get('photo_id')
         if not photo_id:
-            print("Warning: Photo ID not provided, event created without photo link")
+            print("Warning: Photo ID not provided, Issue created without photo link")
+        else:
+            add_relationship(
+                "Photo", "photo_id", photo_id,
+                "TRIGGERS_EVENT",
+                "Issue", "event_id", event_id,
+                {"triggeredAt": datetime.now().isoformat()}
+            )
         
-        add_triggers_event({
-            'event_id': event_id,
-            'photo_id': photo_id,
-            'triggeredAt': datetime.now().isoformat()
-        })
+        # Link Issue to its City if provided
+        city_id = params.get('city_id')
+        if city_id:
+            add_relationship(
+                "Issue", "event_id", event_id,
+                "IN_CITY",
+                "City", "city_id", city_id
+            )
+        else:
+            print("Warning: city_id not provided, Issue created without city link")
 
 
         # # Create detection event with all parameters
@@ -219,8 +233,8 @@ async def run_mai_function(ctx: RunContextWrapper, args):
             'status': params.get('status', 'good'),
         }
         
-        # Add the event to the database
-        event = add_detection_event({
+        # Create the Maintenance event in the database
+        event = add_maintenance({
             'event_id': uuid.uuid4().hex[:8],
             'reported_at': datetime.now().isoformat(),
             **event_props
@@ -264,50 +278,34 @@ async def run_mai_function(ctx: RunContextWrapper, args):
             category_id = category_name
             print(f"Warning: Error extracting IDs: {str(e)}, using fallbacks")
         
-        # Connect event to category
-        add_in_category({
-            'event_id': event_id,
-            'category_id': category_id
-        })
+        # Link Maintenance to its Category
+        add_relationship(
+            "Maintenance", "event_id", event_id,
+            "IN_CATEGORY",
+            "Category", "category_id", category_id
+        )
+        
+        # Link Maintenance to its City if provided
+        city_id = params.get('city_id')
+        if city_id:
+            add_relationship(
+                "Maintenance", "event_id", event_id,
+                "IN_CITY",
+                "City", "city_id", city_id
+            )
+        else:
+            print("Warning: city_id not provided, Maintenance created without city link")
 
-        # Add the photo to the event
+        # Link Photo to Maintenance if provided
         photo_id = params.get('node_id')
         if not photo_id:
-            print("Warning: Photo ID not provided, event created without photo link")
+            print("Warning: Photo ID not provided, Maintenance created without photo link")
         else:
-            try:
-                # Handle element_id format if needed
-                if ':' in photo_id and len(photo_id.split(':')) > 2:
-                    print(f"Using element_id format: {photo_id}")
-                
-                # Try to create a direct CONTAINS relationship from event to photo
-                # with a different relationship type than IN_CATEGORY
-                try:
-                    # Create a custom query
-                    from db.neo4j import get_session
-                    
-                    with get_session() as session:
-                        # Using direct Cypher query with explicit relationship type
-                        query = """
-                        MATCH (e:DetectionEvent {event_id: $event_id})
-                        MATCH (p {element_id: $photo_id})
-                        MERGE (e)-[:CONTAINS]->(p)
-                        RETURN e, p
-                        """
-                        session.run(query, event_id=event_id, photo_id=photo_id)
-                        print(f"Event {event_id} linked to photo {photo_id} using CONTAINS relationship")
-                except Exception as db_e:
-                    print(f"Direct query failed: {str(db_e)}, trying fallback...")
-                    # Fallback to original method but with additional parameters
-                    add_in_category({
-                        'event_id': event_id,
-                        'photo_id': photo_id,
-                        'rel_type': 'CONTAINS'  # Try specifying relationship type
-                    })
-                    print(f"Event {event_id} linked to photo {photo_id} with fallback method")
-            except Exception as photo_e:
-                print(f"Warning: Failed to link event to photo: {str(photo_e)}")
-                # Continue execution even if photo linking fails
+            add_relationship(
+                "Photo", "photo_id", photo_id,
+                "CONTAINS",
+                "Maintenance", "event_id", event_id
+            )
         
         return {
             "status": "success",
