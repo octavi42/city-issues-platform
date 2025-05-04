@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, CheckCircle, AlertCircle, User, Bell } from "lucide-react";
+import { MapPin, CheckCircle, AlertCircle, Bell } from "lucide-react";
 
 interface Issue {
     id: number;
@@ -48,6 +44,7 @@ const Account = () => {
 
     return (
         <div className="relative h-full overflow-auto px-6">
+            
             {/* Profile Section */}
             <div className="flex flex-col items-center mb-8 mt-8">
                 <div className="w-24 h-24 rounded-full bg-[#F7F7F7] flex items-center justify-center text-2xl font-bold text-[#333] mb-4">

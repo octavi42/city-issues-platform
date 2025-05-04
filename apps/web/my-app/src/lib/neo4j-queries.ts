@@ -39,20 +39,27 @@ export async function fetchAnalyzerById(analyzerId: string): Promise<Analyzer | 
 }
 
 /** Fetch all DetectionEvent nodes */
+/**
+ * Fetch all Issue nodes (replaces DetectionEvent nodes)
+ */
 export async function fetchDetectionEvents(): Promise<DetectionEvent[]> {
-  return getNodes<DetectionEvent>('DetectionEvent');
+  return getNodes<DetectionEvent>('Issue');
 }
 
 /** Fetch a single DetectionEvent by its unique event_id */
+/**
+ * Fetch a single Issue by its unique event_id (replaces DetectionEvent)
+ */
 export async function fetchDetectionEventById(eventId: string): Promise<DetectionEvent | null> {
-  return getNodeByKey<DetectionEvent>('DetectionEvent', 'event_id', eventId);
+  return getNodeByKey<DetectionEvent>('Issue', 'event_id', eventId);
 }
 
 /** Fetch photo associated with a detection event by event_id */
 export async function fetchPhotoByEventId(eventId: string): Promise<Photo | null> {
   // Cypher query to find the photo that triggers a specific detection event
+  // Cypher query to find the photo that triggers a specific Issue (formerly DetectionEvent)
   const cypher = `
-    MATCH (p:Photo)-[:TRIGGERS_EVENT]->(e:DetectionEvent)
+    MATCH (p:Photo)-[:TRIGGERS_EVENT]->(e:Issue)
     WHERE e.event_id = $eventId
     RETURN properties(p) AS photo
   `;
@@ -62,10 +69,12 @@ export async function fetchPhotoByEventId(eventId: string): Promise<Photo | null
 }
 
 /** Fetch detection events by category slug (converts slug to name for query) */
+/**
+ * Fetch Issue nodes by category slug (replaces DetectionEvent nodes)
+ */
 export async function fetchDetectionEventsByCategory(categorySlug: string): Promise<DetectionEvent[]> {
-  // Cypher query to find detection events related to a category by slug
   const cypher = `
-    MATCH (e:DetectionEvent)-[:IN_CATEGORY]->(c:Category)
+    MATCH (e:Issue)-[:IN_CATEGORY]->(c:Category)
     WHERE toLower(replace(c.name, ' ', '-')) = $categorySlug
     RETURN properties(e) AS node
   `;
@@ -75,10 +84,12 @@ export async function fetchDetectionEventsByCategory(categorySlug: string): Prom
 }
 
 /** Fetch photos with their related detection events by category slug */
+/**
+ * Fetch photos with their related Issue nodes by category slug (replaces DetectionEvent)
+ */
 export async function fetchPhotosWithDetectionEvents(categorySlug: string): Promise<Array<{photo: Photo; event: DetectionEvent}>> {
-  // Cypher query to find photos that trigger detection events in a specific category
   const cypher = `
-    MATCH (p:Photo)-[:TRIGGERS_EVENT]->(e:DetectionEvent)-[:IN_CATEGORY]->(c:Category)
+    MATCH (p:Photo)-[:TRIGGERS_EVENT]->(e:Issue)-[:IN_CATEGORY]->(c:Category)
     WHERE toLower(replace(c.name, ' ', '-')) = $categorySlug
     RETURN properties(p) AS photo, properties(e) AS event
   `;
