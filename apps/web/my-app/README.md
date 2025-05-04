@@ -1,57 +1,111 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# City Issues Platform
 
-## Getting Started
+A Next.js 13 application for exploring and managing city infrastructure issues using a Neo4j graph database backend. Built to demonstrate issue detection, categorization, and detailed views of problems (e.g., potholes) in Cluj-Napoca.
 
-First, run the development server:
+## Table of Contents
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Environment Variables](#environment-variables)
+- [Database Schema Dump](#database-schema-dump)
+- [Running the App](#running-the-app)
+- [Testing Neo4j Queries](#testing-neo4j-queries)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Features
+- Home page with dynamic category cards loaded from Neo4j (fallback to static data).
+- Category details page displaying issues as photo cards with detection event data.
+- Issue detail page with comprehensive information: image, severity badge, location, suggestions, and comments.
+- Neo4j integration with auto-generated TypeScript schema and generic query utilities.
+- Responsive UI built with React, Next.js, Tailwind CSS, Anime.js, Framer Motion, and shadcn/ui components.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
+- **Framework:** Next.js 13 (App Router, Server & Client Components)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS, shadcn/ui
+- **Database:** Neo4j (with `neo4j-driver` & APOC)
+- **Animations:** Anime.js, Framer Motion
+- **Utilities:** date-fns for date formatting, ESLint for linting
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Prerequisites
+- Node.js 18+  
+- npm, yarn, or pnpm  
+- A running Neo4j database (e.g., Docker image of Neo4j 5+ with APOC plugin)
 
-## Neo4j Schema Dump
+## Installation
+1. Clone the repository:
+   ```bash
+   git clone <repo-url>
+   cd my-app
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Create a `.env` file in the project root with the following variables:
+   ```bash
+   NEO4J_URI=bolt://localhost:7687
+   NEO4J_USERNAME=neo4j
+   NEO4J_PASSWORD=your_password
+   ```
 
-This project includes a script to dump the Neo4j database schema using the APOC library.
+## Environment Variables
+- `NEO4J_URI`: Bolt URI of the Neo4j database (e.g., `bolt://localhost:7687`)  
+- `NEO4J_USERNAME`: Username for Neo4j authentication  
+- `NEO4J_PASSWORD`: Password for Neo4j authentication  
 
-Before running the script, ensure the following environment variables are set:
-  - `NEO4J_URI` (e.g., `bolt://localhost:7687`)
-  - `NEO4J_USER`
-  - `NEO4J_PASSWORD`
-
-Install the required dependency:
-```bash
-npm install neo4j-driver
-```
-
-Then run:
+## Database Schema Dump
+This project includes a script to dump the Neo4j schema using the APOC procedure:
 ```bash
 npm run dump-schema
 ```
+The JSON schema is generated at `generated/neo4j-schema.json`. TypeScript types are auto-generated in `src/lib/neo4j-schema.ts`.
 
-The schema will be written to `generated/neo4j-schema.json`.
+## Running the App
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Development (HTTPS)
+```bash
+npm run dev
+```  
+Starts the development server with HTTPS enabled.  
+Open <https://localhost:3000> (or <http://localhost:3000>) in your browser.
 
-## Learn More
+### Production
+Build and start the application:
+```bash
+npm run build
+npm run start
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Testing Neo4j Queries
+Sample scripts are provided to test the Neo4j data-fetching functions. Ensure your environment variables are set, then run:
+```bash
+npx ts-node test-neo4j-queries.ts
+```
+This will fetch and log nodes for Users, Analyzers, Categories, Departments, Solutions, and DetectionEvents.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
+```
+.  
+├── app/                   Next.js App Router (pages & layouts)  
+│   ├── page.tsx           Home page  
+│   ├── categories/        Category pages (dynamic `[slug]`)  
+│   └── issue/             Issue detail pages (dynamic `[slug]`)  
+├── components/            React UI components (pages, UI primitives)  
+├── lib/                   Core utilities  
+│   ├── neo4j.ts           Generic Neo4j driver & query utilities  
+│   ├── neo4j-queries.ts   High-level service functions for domain models  
+│   └── neo4j-schema.ts    Auto-generated TS types from database schema  
+├── scripts/               Helper scripts  
+│   └── dump-schema.js     Neo4j schema export script  
+├── generated/             Generated files (e.g., `neo4j-schema.json`)  
+├── public/                Static assets (images, favicon)  
+├── test-neo4j-queries.ts  Neo4j query test script  
+├── package.json  
+└── README.md  
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing
+Contributions welcome! Please open issues or submit pull requests for any bugs or enhancements.
