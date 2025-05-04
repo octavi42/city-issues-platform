@@ -5,10 +5,14 @@ import { Sheet } from "@silk-hq/components";
 import Image from 'next/image';
 import "@/components/examples/DetachedSheet/DetachedSheet.css";
 import "@/components/examples/DetachedSheet/ExampleDetachedSheet.css";
+import { useVisitorId } from '../hooks/useVisitorId';
+import { useUserLocation } from '../hooks/useUserLocation';
 
 const CustomDetachedSheet = () => {
   const [presented, setPresented] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const visitorId = useVisitorId();
+  const location = useUserLocation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const photoRef = useRef<HTMLCanvasElement>(null);
   const [hasPhoto, setHasPhoto] = useState(false);
@@ -25,6 +29,48 @@ const CustomDetachedSheet = () => {
       setIsIOS(/iphone|ipad|ipod/.test(userAgent));
     }
   }, []);
+  
+  // Log visitor ID when initialized
+  useEffect(() => {
+    if (visitorId) console.log('Visitor ID:', visitorId);
+  }, [visitorId]);
+  
+  // Log user location when available
+  useEffect(() => {
+    if (location) console.log('User location:', location);
+  }, [location]);
+
+  // When sheet opens, require precise geolocation if not already granted
+  const [requireLocation, setRequireLocation] = useState(false);
+  useEffect(() => {
+    if (presented) {
+      // if no location or only IP fallback, ask for geolocation
+      if (!location || location.method !== 'geolocation') {
+        setRequireLocation(true);
+      } else {
+        setRequireLocation(false);
+      }
+    }
+  }, [presented, location]);
+
+  // Trigger a geolocation permission request
+  const requestGeolocation = () => {
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          // on success, hook will update location
+          setRequireLocation(false);
+        },
+        (err) => {
+          console.warn('Geolocation request failed:', err);
+          alert('Please enable location services in your browser settings to continue.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      alert('Geolocation is not supported by your browser.');
+    }
+  };
   
   const openCamera = async () => {
     try {
@@ -268,10 +314,10 @@ const CustomDetachedSheet = () => {
     <>
       <button
         onClick={() => setPresented(!presented)}
-        className={`fixed bottom-8 right-8 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300 ease-in-out z-50 ${
+        className={`fixed bottom-8 right-8 w-14 h-14  rounded-full shadow-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300 ease-in-out z-50 ${
           presented 
-            ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300' 
-            : 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-300'
+            ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300 text-white' 
+            : 'bg-[#191919] hover:bg-blue-600 focus:ring-blue-300 text-[#b2ff01]'
         }`}
         aria-label={presented ? "Close" : "Add"}
       >
@@ -426,36 +472,54 @@ const CustomDetachedSheet = () => {
                     </div>
                   </div>
                 ) : (
-                  <>
-                    <div className="ExampleDetachedSheet-information">
-                      <Sheet.Title className="ExampleDetachedSheet-title">
-                        Add New Content
-                      </Sheet.Title>
-                      <Sheet.Description className="ExampleDetachedSheet-description">
-                        Choose how you want to add content
-                      </Sheet.Description>
-                    </div>
-                    <div className="flex flex-col gap-4 p-4">
+                  <>  {
+                    // If location access is required, prompt user
+                  }
+                  {requireLocation ? (
+                    <div className="p-4 flex flex-col items-center gap-4">
+                      <p className="text-center text-gray-700">
+                        To upload an image, please enable precise location access.
+                      </p>
                       <button
-                        className="bg-blue-500 text-white p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
-                        onClick={handleTakePhotoClick}
+                        onClick={requestGeolocation}
+                        className="bg-[#085cdd] text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                        </svg>
-                        Take a Photo
-                      </button>
-                      <button
-                        className="bg-gray-200 text-gray-800 p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a3 3 0 006 0V7a3 3 0 00-3-3zm5 3a5 5 0 00-10 0v4a5 5 0 0010 0V7z" clipRule="evenodd" />
-                          <path d="M14 7a1 1 0 10-2 0v4a1 1 0 102 0V7z" />
-                        </svg>
-                        Upload Image
+                        Enable Location
                       </button>
                     </div>
+                  ) : (
+                    <>
+                      <div className="ExampleDetachedSheet-information">
+                        <Sheet.Title className="ExampleDetachedSheet-title">
+                          Add New Content
+                        </Sheet.Title>
+                        <Sheet.Description className="ExampleDetachedSheet-description">
+                          Choose how you want to add content
+                        </Sheet.Description>
+                      </div>
+                      <div className="flex flex-col gap-4 p-4">
+                        <button
+                          className="bg-blue-500 text-white p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
+                          onClick={handleTakePhotoClick}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                          </svg>
+                          Take a Photo
+                        </button>
+                        <button
+                          className="bg-gray-200 text-gray-800 p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a3 3 0 006 0V7a3 3 0 00-3-3zm5 3a5 5 0 00-10 0v4a5 5 0 0010 0V7z" clipRule="evenodd" />
+                            <path d="M14 7a1 1 0 10-2 0v4a1 1 0 102 0V7z" />
+                          </svg>
+                          Upload Image
+                        </button>
+                      </div>
+                    </>
+                  )}
                   </>
                 )}
               </div>

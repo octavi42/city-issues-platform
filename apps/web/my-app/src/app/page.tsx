@@ -129,7 +129,7 @@ export default function Home() {
   }, [infoOpen]);
 
   const openCategoriesSheet = () => {
-    router.push('/categories', { scroll: false });
+    
   };
 
   return (
@@ -166,22 +166,22 @@ export default function Home() {
 
           <div className="pb-12">
             <div className="grid grid-cols-2 gap-5">
-              <div className="rounded-2xl p-4 bg-[#DBF24C] border border-lime-200">
-                <p className="text-3xl font-bold text-lime-900">40</p>
-                <p className="text-sm text-lime-800">issues</p>
+              <div className="rounded-2xl p-4 bg-[#fecc02] ">
+                <p className="text-3xl font-bold text-white">40</p>
+                <p className="text-sm text-white">issues</p>
               </div>
               
-              <div className="rounded-2xl p-4 bg-gray-100 border border-gray-200">
+              <div className="rounded-2xl p-4 bg-[#ffffff] border border-gray-200">
                 <p className="text-3xl font-bold">5s</p>
                 <p className="text-sm text-gray-600">avg response time</p>
               </div>
               
-              <div className="rounded-2xl p-4 bg-gray-100 border border-gray-200">
+              <div className="rounded-2xl p-4 bg-[#ffffff] border border-gray-200">
                 <p className="text-3xl font-bold">25</p>
                 <p className="text-sm text-gray-600">degrees celsius</p>
               </div>
               
-              <div className="rounded-2xl p-4 bg-[#FE7A71] border border-red-300">
+              <div className="rounded-2xl p-4 bg-[#ff5900] ">
                 <p className="text-3xl font-bold text-white">5</p>
                 <p className="text-sm text-red-100">critical problems</p>
               </div>
