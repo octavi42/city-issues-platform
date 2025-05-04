@@ -25,10 +25,12 @@ export default function RootLayout({
   children,
   cat_modal,
   iss_modal,
+  acc_modal,
 }: {
   children: React.ReactNode;
   cat_modal: React.ReactNode;
   iss_modal: React.ReactNode;
+  acc_modal: React.ReactNode;
 }) {
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
@@ -37,6 +39,7 @@ export default function RootLayout({
         {children}
         {cat_modal}
         {iss_modal}
+        {acc_modal}
       </body>
     </html>
   );

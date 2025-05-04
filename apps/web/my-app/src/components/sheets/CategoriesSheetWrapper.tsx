@@ -36,7 +36,6 @@ export default function CategoriesSheetWrapper() {
     >
       <Sheet.Portal>
         <Sheet.View
-          className="DetachedSheet-view contentPlacement-center"
           contentPlacement="center"
           tracks={["top", "bottom"]}
           nativeEdgeSwipePrevention
@@ -51,16 +50,13 @@ export default function CategoriesSheetWrapper() {
             // themeColorDimming="auto" 
           />
           <Sheet.Content 
-            className="DetachedSheet-content"
             style={{ background: 'transparent !important', boxShadow: 'none !important' }}
           >
             {/* Apply transparent background to inner content div as well */}
             <div 
-              className="DetachedSheet-innerContent ExampleDetachedSheet-root" 
               style={{ background: 'transparent !important' }}
             >
               <Sheet.Handle
-                className="ExampleDetachedSheet-handle"
                 action="dismiss"
               />
               {/* Placeholder content - replace with actual categories content */}
