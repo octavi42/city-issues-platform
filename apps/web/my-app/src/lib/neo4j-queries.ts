@@ -126,3 +126,13 @@ export async function fetchSolutions(): Promise<Solution[]> {
 export async function fetchSolutionById(solutionId: string): Promise<Solution | null> {
   return getNodeByKey<Solution>('Solution', 'solution_id', solutionId);
 }
+
+/** Count issues per category */
+export async function countIssuesPerCategory(): Promise<Array<{category_id: string, name: string, count: number}>> {
+  const cypher = `
+    MATCH (i:Issue)-[:IN_CATEGORY]->(c:Category)
+    RETURN c.category_id as category_id, c.name as name, count(i) as count
+  `;
+  
+  return runQuery<{category_id: string, name: string, count: number}>(cypher);
+}

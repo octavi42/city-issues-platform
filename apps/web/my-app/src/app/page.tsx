@@ -8,6 +8,7 @@ import { fetchCategories } from '@/lib/neo4j-queries';
 import { Category } from '@/lib/neo4j-schema';
 import { Skeleton } from "@/components/ui/skeleton";
 import { User } from 'lucide-react';
+import {CategoriesSheetWrapper} from "@/components/modals/Categories";
 
 const INITIAL_COLLAPSED_HEIGHT = 'h-[4.5rem]';
 
@@ -140,9 +141,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white text-gray-900 font-['Schibsted_Grotesk',_Arial,_sans-serif] p-8 flex flex-col items-center justify-center">
       <div className="w-full max-w-lg">
-        <main className="flex flex-col gap-12">
+        <main className="flex flex-col gap-4">
           <div className="flex justify-between items-start">
-            <h1 className="text-3xl font-bold leading-tight mb-6">
+            <h1 className="text-3xl font-bold leading-tight">
               Hello, from<br />
               Cluj-Napoca
             </h1>
@@ -162,7 +163,7 @@ export default function Home() {
           >
             <div 
               ref={infoContentRef} 
-              className={`overflow-hidden relative ${INITIAL_COLLAPSED_HEIGHT} pb-6`} 
+              className={`overflow-hidden relative ${INITIAL_COLLAPSED_HEIGHT} pb-6 mb-8`} 
             >
               <div className="text-lg font-normal leading-relaxed text-gray-500 tracking-normal py-3 rounded-lg mb-2">
                 <p>Cluj-Napoca is the second most populous city in Romania and the seat of Cluj County. Located in northwestern Romania, the city is situated approximately 450 kilometers from Bucharest.</p>
@@ -203,13 +204,8 @@ export default function Home() {
 
           <div className="pb-12">
             <div className="flex justify-between items-center pb-8">
-              <h2 className="text-2xl font-semibold">Categories</h2>
-              <button 
-                onClick={openCategoriesSheet}
-                className="bg-gray-100 rounded-full py-2 px-4 text-sm font-semibold tracking-wide hover:bg-gray-200 transition-colors duration-150"
-              >
-                <span>View all</span>
-              </button>
+                <h2 className="text-2xl font-semibold">Categories</h2>
+              <CategoriesSheetWrapper />
             </div>
             
             <div className="grid grid-cols-2 gap-5">
