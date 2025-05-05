@@ -254,6 +254,46 @@ export default function Home() {
 
           <div className="pb-12">
             <div className="flex justify-between items-center pb-8">
+              <h2 className="text-2xl font-semibold">Well Maintained Elements</h2>
+            </div>
+            
+            <div className="overflow-x-auto pb-4 -mx-8 px-8">
+              <div className="flex gap-4 w-max pr-8">
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <Skeleton 
+                      key={`element-skeleton-${index}`}
+                      className="h-40 w-60 shrink-0 rounded-2xl"
+                    />
+                  ))
+                ) : (
+                  <>
+                    <div className="h-40 w-60 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-400">Image 1</span>
+                    </div>
+                    <div className="h-40 w-60 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-400">Image 2</span>
+                    </div>
+                    <div className="h-40 w-60 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-400">Image 3</span>
+                    </div>
+                    <div className="h-40 w-60 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-400">Image 4</span>
+                    </div>
+                    <div className="h-40 w-60 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-400">Image 5</span>
+                    </div>
+                    <div className="h-40 w-40 shrink-0 rounded-2xl bg-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors">
+                      <span className="text-gray-600 font-medium">View all</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="pb-12">
+            <div className="flex justify-between items-center pb-8">
               <h2 className="text-2xl font-semibold">Issues</h2>
               <div className="bg-gray-100 rounded-full py-2 px-4 text-sm font-semibold tracking-wide">
                 <span>View all</span>
