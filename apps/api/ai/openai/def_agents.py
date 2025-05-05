@@ -43,13 +43,12 @@ def _load(name):
     # if not category_names:
     #     category_names = ["other"]
     
-    # Set the enum values
-    schema["properties"]["category"]["enum"] = category_names
-    
+    # Set the enum values if the schema defines a category property
+    if "properties" in schema and "category" in schema["properties"]:
+        schema["properties"]["category"]["enum"] = category_names
     # Ensure category is not in the required fields
-    if "required" in schema:
-        if "category" in schema["required"]:
-            schema["required"].remove("category")
+    if "required" in schema and "category" in schema.get("required", []):
+        schema["required"].remove("category")
     
     return schema
 
@@ -206,23 +205,7 @@ async def run_mai_function(ctx: RunContextWrapper, args):
     
     try:
         print("Processing maintenance report...")
-        # Get the category name
-        category_name = params.get('category')
-        
-        # Check if category exists
-        category_node = search_node("Category", "category_id", category_name)
-        
-        # If category doesn't exist, create it
-        if not category_node:
-            print(f"Creating new maintenance category: {category_name}")
-            category_props = {
-                "event_type": "maintenance",
-                "category_id": category_name,
-                "name": category_name,
-                "description": params.get('category_description', f"Maintenance category: {category_name}")
-            }
-            category_node = add_category(category_props)
-            print(f"New maintenance category created: {category_name}")
+        # Maintenance records no longer include categories
         
         # Create the maintenance event with all parameters
         event_props = {
@@ -245,9 +228,8 @@ async def run_mai_function(ctx: RunContextWrapper, args):
         print(event)
         print()
 
-        # Connect the event to the category - safely extract IDs
+        # Extract event_id safely
         try:
-            # Try multiple access patterns for Neo4j nodes
             if isinstance(event, dict):
                 event_id = event.get("event_id")
             elif hasattr(event, "__getitem__"):
@@ -261,29 +243,10 @@ async def run_mai_function(ctx: RunContextWrapper, args):
             else:
                 event_id = uuid.uuid4().hex[:8]
                 print(f"Warning: Could not extract event_id, using generated ID: {event_id}")
-                
-            # Extract category ID safely
-            if isinstance(category_node, dict):
-                category_id = category_node.get("category_id")
-            elif hasattr(category_node, "__getitem__"):
-                category_id = category_node["category_id"]
-            elif hasattr(category_node, "category_id"):
-                category_id = category_node.category_id
-            elif hasattr(category_node, "_properties"):
-                category_id = category_node._properties.get("category_id")
-            else:
-                category_id = category_name
         except Exception as e:
             event_id = uuid.uuid4().hex[:8]
-            category_id = category_name
-            print(f"Warning: Error extracting IDs: {str(e)}, using fallbacks")
-        
-        # Link Maintenance to its Category
-        add_relationship(
-            "Maintenance", "event_id", event_id,
-            "IN_CATEGORY",
-            "Category", "category_id", category_id
-        )
+            print(f"Warning: Error extracting event_id: {str(e)}, using fallback")
+        # Maintenance records are not linked to categories
         
         # Link Maintenance to its City if provided
         city_id = params.get('city_id')
@@ -296,8 +259,8 @@ async def run_mai_function(ctx: RunContextWrapper, args):
         else:
             print("Warning: city_id not provided, Maintenance created without city link")
 
-        # Link Photo to Maintenance if provided
-        photo_id = params.get('node_id')
+        # Link Photo to Maintenance if provided (use photo_id, not node_id)
+        photo_id = params.get('photo_id')
         if not photo_id:
             print("Warning: Photo ID not provided, Maintenance created without photo link")
         else:
@@ -309,9 +272,8 @@ async def run_mai_function(ctx: RunContextWrapper, args):
         
         return {
             "status": "success",
-            "message": f"Well-maintained element recorded in category '{category_name}'",
-            "event_id": event_id,
-            "category": category_name
+            "message": "Well-maintained element recorded",
+            "event_id": event_id
         }
         
     except Exception as e:

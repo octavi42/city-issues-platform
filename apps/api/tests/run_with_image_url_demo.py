@@ -82,7 +82,56 @@ def cleanup_demo_data():
             prefix="demo_city"
         )
     print("Cleanup complete.")
+    
+def run_maintenance_demo():
+    """
+    Demo script to run run_with_image_url on images from assets/maintanance_images
+    for maintenance (well-maintained) images.
+    """
+    # Load AWS credentials and bucket
+    load_dotenv()
+    bucket = os.getenv("AWS_S3_BUCKET")
+    if not bucket:
+        raise RuntimeError("AWS_S3_BUCKET environment variable is not set")
+    # Define multiple users and locations (some share the same location)
+    users = [
+        {"id": "demo_user1", "name": "DemoUser1"},
+        {"id": "demo_user2", "name": "DemoUser2"},
+        {"id": "demo_user3", "name": "DemoUser3"},
+    ]
+    locations = [
+        {"city": "demo_cityA", "country": "DemoLand", "latitude": 1.0, "longitude": 2.0},
+        {"city": "demo_cityB", "country": "DemoLand", "latitude": 3.0, "longitude": 4.0},
+        {"city": "demo_cityA", "country": "DemoLand", "latitude": 1.0, "longitude": 2.0},
+    ]
+
+    # Directory containing maintenance test images
+    images_dir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), os.pardir, "assets", "maintanance_images")
+    )
+    images = [f for f in os.listdir(images_dir) if os.path.isfile(os.path.join(images_dir, f))]
+
+    print("Running run_with_image_url for maintenance images:")
+    # Use one image per user for demonstration (up to available images)
+    for i, user in enumerate(users):
+        if i >= len(images):
+            break
+        location = locations[i]
+        # Select the image and upload to S3
+        filename = images[i]
+        file_path = os.path.join(images_dir, filename)
+        ext = Path(file_path).suffix
+        object_name = f"{uuid.uuid4().hex}{ext}"
+        print(f"Uploading {filename} to s3://{bucket}/{object_name}...")
+        image_url = upload_file_to_s3(file_path, bucket, object_name)
+        print(f"Uploaded URL: {image_url}")
+        # Run the inspector on the uploaded S3 URL for maintenance
+        print(f"User: {user['id']}, Location: {location['city']}, Image: {image_url}")
+        result = run_with_image_url(image_url, user, location)
+        print("Result:", result)
+        print("-" * 40)
 
 if __name__ == "__main__":
     run_demo()
+    run_maintenance_demo()
     # cleanup_demo_data()

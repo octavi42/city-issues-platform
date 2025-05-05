@@ -2,22 +2,20 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "city_id":           { "type": "string", "description": "ID of the city where the maintenance was recorded" },
-    "event_id":           { "type": "string" },
-    "description":        { "type": "string" },
-    "inspected_at":       { "type": "string" },
-    "category":           { "type": "string", "enum": [] },
-    "category_description": { "type": "string", "description": "Description of the category if a new category is suggested" },
-    "status":             { "type": "string", "enum": ["good", "acceptable", "bad"] },
-    "condition_score":    { "type": "number" }
+    "city_id":        { "type": "string", "description": "ID of the city where the maintenance was recorded" },
+    "photo_id":       { "type": "string", "description": "ID of the photo for this maintenance record" },
+    "event_id":       { "type": "string", "description": "Unique ID for the maintenance event" },
+    "description":    { "type": "string", "description": "Detailed description of the maintenance" },
+    "inspected_at":   { "type": "string", "description": "Timestamp when the maintenance was logged" },
+    "status":         { "type": "string", "enum": ["good", "acceptable", "bad"], "description": "Condition status of the element" },
+    "condition_score":{ "type": "number", "description": "Numeric score representing condition" }
   },
   "required": [
     "city_id",
+    "photo_id",
     "event_id",
     "description",
     "inspected_at",
-    "category",
-    "category_description",
     "status",
     "condition_score"
   ]
