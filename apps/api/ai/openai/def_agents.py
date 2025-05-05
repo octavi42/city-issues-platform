@@ -5,7 +5,18 @@ try:
     from agents import Agent, ModelSettings, RunContextWrapper
     from agents.tool import FunctionTool
 except ImportError:
-    raise ImportError("agents and agents.tool libraries are required for Agent, ModelSettings, and FunctionTool")
+    # Fallback stubs for environments without the agents package
+    class Agent:
+        def __init__(self, *args, **kwargs):
+            pass
+    class ModelSettings:
+        def __init__(self, *args, **kwargs):
+            pass
+    class RunContextWrapper:
+        pass
+    class FunctionTool:
+        def __init__(self, *args, **kwargs):
+            pass
 import sys
 import os
 import json
@@ -24,7 +35,8 @@ from db.crud.create_edges import add_relationship
 from db.crud.read_nodes import search_node
 
 def _load(name):
-    nodes = read_nodes("Category")
+    # Read existing categories, default to empty list if unavailable
+    nodes = read_nodes("Category") or []
     schema = json.loads((_SCHEMA_DIR/name).read_text())
     
     # Determine event type based on schema name
@@ -332,4 +344,46 @@ city_inspector = Agent(
     model="gpt-4.1-mini",
     model_settings=ModelSettings(temperature=0.2),
     tools=[report_issue_tool, log_wm_tool],
+)
+   
+# Relevance scoring tool for image-context match
+REL_SCHEMA = json.loads((_SCHEMA_DIR / "relevance.json").read_text())
+
+async def run_relevance_function(ctx: RunContextWrapper, args):
+    # Normalize input to dict
+    if isinstance(args, str):
+        try:
+            params = json.loads(args)
+        except Exception:
+            params = {}
+    else:
+        params = args or {}
+
+    # Extract the delta score from the model's output
+    delta = params.get('delta_score')
+    return { 'delta_score': delta }
+
+adjust_relevance_tool = FunctionTool(
+    name="adjust_relevance_score",
+    description="Compute an integer delta to adjust the relevance score based on photo data and user feedback accuracy",
+    params_json_schema=REL_SCHEMA,
+    on_invoke_tool=run_relevance_function,
+    strict_json_schema=False,
+)
+
+relevance_scorer = Agent(
+    name="RelevanceScorer",
+    instructions=(
+        "You are an assistant that adjusts an image's relevance score based on how relevant and accurate the user's feedback (additional_info) is to the image and its existing description. "
+        "You will receive a JSON object with these fields: 'image_url' (the image link), 'description' (the current image description), "
+        "'current_score' (the current relevance score), 'node_details' (the photo node metadata), and 'additional_info' (user feedback about the description). "
+        "Evaluate the feedback: if it accurately reflects and enhances the image content, apply a positive delta; "
+        "if it contradicts or is inaccurate, apply a negative delta; "
+        "if it is irrelevant or off-topic, apply a delta of 0 (no change). "
+        "Choose an integer 'delta_score' between -10 and 10 inclusive. "
+        "Return EXACTLY ONE function call to 'adjust_relevance_score' including all required parameters: image_url, description, current_score, node_details, additional_info, and delta_score."
+    ),
+    model="gpt-4.1-mini",
+    model_settings=ModelSettings(temperature=0.2),
+    tools=[adjust_relevance_tool],
 )

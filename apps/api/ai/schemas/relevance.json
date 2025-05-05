@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "image_url":       { "type": "string", "description": "URL of the image to assess" },
+    "description":     { "type": "string", "description": "Text description of the image content" },
+    "current_score":   { "type": "number", "description": "Current relevance score" },
+    "node_details":    { "type": "object", "description": "Existing node details relevant to the image" },
+    "additional_info": { "type": "string", "description": "Extra textual information to consider" },
+    "delta_score":     {
+      "type": "number",
+      "description": "Adjustment to apply to current_score (positive or negative)",
+      "minimum": -10,
+      "maximum": 10
+    }
+  },
+  "required": ["image_url", "description", "current_score", "node_details", "additional_info", "delta_score"]
+}

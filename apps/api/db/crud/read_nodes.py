@@ -14,7 +14,9 @@ def read_nodes(label: str) -> list:
     session = get_session()
     with session as s:
         result = s.run(f"MATCH (n:{label}) RETURN n")
-        return [record.get("n") for record in result]
+        # Ensure result is iterable
+        records = result or []
+        return [record.get("n") for record in records]
     
 
 def search_node(label: str,
