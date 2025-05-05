@@ -350,7 +350,7 @@ const CustomDetachedSheet = () => {
 
       {/* Camera UI */}
       {showCamera && (
-        <div className="fixed inset-0 bg-black z-[9999] flex flex-col">
+        <div className="fixed inset-0 bg-black z-[-100] flex flex-col">
           <div className="relative flex-grow">
             {!hasPhoto ? (
               <>

@@ -17,22 +17,24 @@ const Card = ({ presentTrigger, sheetContent, ...restProps }: Props) => {
                contentPlacement="center"
                tracks="top"
                enteringAnimationSettings={{
-                  easing: "ease-out",
-                  duration: 250
+                  easing: "spring",
+                  stiffness: 260,
+                  damping: 20,
+                  mass: 1,
                }}
                nativeEdgeSwipePrevention={true}
             >
                <Sheet.Backdrop
                   className="Card-backdrop"
                   travelAnimation={{
-                     opacity: ({ progress }) => progress,
+                     opacity: ({ progress }) => Math.min(0.4 * progress, 0.4),
                   }}
                   themeColorDimming="auto"
                />
                <Sheet.Content
                   className="Card-content"
                   travelAnimation={{
-                     scale: [0.95, 1],
+                     scale: [0.8, 1],
                   }}
                >
                   {sheetContent}

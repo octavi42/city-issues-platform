@@ -1,9 +1,8 @@
 //import liraries
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { runQuery } from '@/lib/neo4j';
-import { DetectionEvent } from '@/lib/neo4j-schema';
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Define interfaces for image data
@@ -54,8 +53,6 @@ interface MaintainedItem {
 // create a component
 const Maintained = () => {
     const router = useRouter();
-    const params = useParams();
-    const slug = params?.slug as string;
     
     // State and refs for image visibility
     const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -63,50 +60,6 @@ const Maintained = () => {
     const [photosWithMaintained, setPhotosWithMaintained] = useState<{photo: PhotoData; maintained: MaintainedItem}[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     
-    // Fetch all photos connected to maintenance nodes
-    useEffect(() => {
-        const fetchMaintainedPhotos = async () => {
-            try {
-                setIsLoading(true);
-                console.log("Fetching photos connected to maintenance nodes");
-                
-                // Direct Neo4j Cypher query to find photos connected to Maintained nodes
-                const cypher = `
-                    MATCH (m:Maintenance)<-[:CONTAINS]-(p:Photo)
-                    RETURN properties(p) AS photo, properties(m) AS maintained
-                `;
-                
-                const results = await runQuery<{photo: PhotoData; maintained: MaintainedItem}>(cypher);
-                console.log("Maintenance photos fetched:", results);
-                
-                if (results && results.length > 0) {
-                    // Transform the data to ensure url is never undefined
-                    const transformedData = results.map(item => ({
-                        photo: {
-                            ...item.photo,
-                            url: item.photo.url || `/images/maintained.jpg` // Provide a default URL if undefined
-                        },
-                        maintained: item.maintained
-                    }));
-                    
-                    setPhotosWithMaintained(transformedData);
-                    
-                    // Generate image data from the fetched photos
-                    generateImageData(transformedData);
-                } else {
-                    console.log("No maintenance photos found, using mock data");
-                    generateMockData();
-                }
-            } catch (error) {
-                console.error("Error fetching maintenance photos:", error);
-                // Fallback to mock data
-                generateMockData();
-            }
-        };
-        
-        fetchMaintainedPhotos();
-    }, []);
-
     // Fallback mock data generator - wrapped in useCallback to prevent infinite loops
     const generateMockData = useCallback(() => {
         console.log("Generating mock maintenance data");
@@ -172,6 +125,50 @@ const Maintained = () => {
             }, 300);
         }
     }, [setImageDataList, setIsLoading]);
+    
+    // Fetch all photos connected to maintenance nodes
+    useEffect(() => {
+        const fetchMaintainedPhotos = async () => {
+            try {
+                setIsLoading(true);
+                console.log("Fetching photos connected to maintenance nodes");
+                
+                // Direct Neo4j Cypher query to find photos connected to Maintained nodes
+                const cypher = `
+                    MATCH (m:Maintenance)<-[:CONTAINS]-(p:Photo)
+                    RETURN properties(p) AS photo, properties(m) AS maintained
+                `;
+                
+                const results = await runQuery<{photo: PhotoData; maintained: MaintainedItem}>(cypher);
+                console.log("Maintenance photos fetched:", results);
+                
+                if (results && results.length > 0) {
+                    // Transform the data to ensure url is never undefined
+                    const transformedData = results.map(item => ({
+                        photo: {
+                            ...item.photo,
+                            url: item.photo.url || `/images/maintained.jpg` // Provide a default URL if undefined
+                        },
+                        maintained: item.maintained
+                    }));
+                    
+                    setPhotosWithMaintained(transformedData);
+                    
+                    // Generate image data from the fetched photos
+                    generateImageData(transformedData);
+                } else {
+                    console.log("No maintenance photos found, using mock data");
+                    generateMockData();
+                }
+            } catch (error) {
+                console.error("Error fetching maintenance photos:", error);
+                // Fallback to mock data
+                generateMockData();
+            }
+        };
+        
+        fetchMaintainedPhotos();
+    }, [generateMockData]);
 
     // Generate image data from photos and maintained items
     const generateImageData = (data: {photo: PhotoData; maintained: MaintainedItem}[]) => {
@@ -295,8 +292,9 @@ const Maintained = () => {
                                 <div 
                                     className="cursor-pointer rounded-[1.875rem] overflow-hidden bg-[#F7F7F7] w-full"
                                     onClick={() => {
-                                        // Use eventId if available, otherwise use generated id
-                                        const issueId = imageData.eventId || `maintenance-${imageData.id.toString()}`;
+                                        // Use photo_id if available, otherwise use generated id
+                                        const photoId = photosWithMaintained[imageData.id - 1]?.photo?.photo_id || `photo-${imageData.id}`;
+                                        router.push(`/image/${photoId}`);
                                     }}
                                 >
                                     <div className={`relative w-full ${imageHeight}`}>
@@ -305,6 +303,11 @@ const Maintained = () => {
                                             alt={imageData.issueText} 
                                             fill
                                             style={{ objectFit: 'cover' }}
+                                            onClick={() => {
+                                                // Use photo_id if available, otherwise use generated id
+                                                const photoId = photosWithMaintained[imageData.id - 1]?.photo?.photo_id || `photo-${imageData.id}`;
+                                                router.push(`/image/${photoId}`);
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -331,8 +334,9 @@ const Maintained = () => {
                                 <div 
                                     className="cursor-pointer rounded-[1.875rem] overflow-hidden bg-[#F7F7F7] w-full"
                                     onClick={() => {
-                                        // Use eventId if available, otherwise use generated id
-                                        const issueId = imageData.eventId || `maintenance-${imageData.id.toString()}`;
+                                        // Use photo_id if available, otherwise use generated id
+                                        const photoId = photosWithMaintained[imageData.id - 1]?.photo?.photo_id || `photo-${imageData.id}`;
+                                        router.push(`/image/${photoId}`);
                                     }}
                                 >
                                     <div className={`relative w-full ${imageHeight}`}>
@@ -341,6 +345,11 @@ const Maintained = () => {
                                             alt={imageData.issueText} 
                                             fill
                                             style={{ objectFit: 'cover' }}
+                                            onClick={() => {
+                                                // Use photo_id if available, otherwise use generated id
+                                                const photoId = photosWithMaintained[imageData.id - 1]?.photo?.photo_id || `photo-${imageData.id}`;
+                                                router.push(`/image/${photoId}`);
+                                            }}
                                         />
                                     </div>
                                 </div>

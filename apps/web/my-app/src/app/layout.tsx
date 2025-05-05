@@ -2,7 +2,6 @@ import "./globals.css";
 import "@/components/examples/DetachedSheet/DetachedSheet.css";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import FloatingButton from "./components/FloatingButton";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,20 +25,25 @@ export default function RootLayout({
   cat_modal,
   iss_modal,
   acc_modal,
+  mai_modal,
+  img_modal,
 }: {
   children: React.ReactNode;
   cat_modal: React.ReactNode;
   iss_modal: React.ReactNode;
   acc_modal: React.ReactNode;
+  mai_modal: React.ReactNode;
+  img_modal: React.ReactNode;
 }) {
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
       <body>
-        <FloatingButton />
+        {img_modal}
         {children}
         {cat_modal}
         {iss_modal}
         {acc_modal}
+        {mai_modal}
       </body>
     </html>
   );

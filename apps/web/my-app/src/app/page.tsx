@@ -4,11 +4,13 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from 'next/navigation';
 import { animate } from 'animejs';
 import { categories as staticCategories } from '@/data/categories';
-import { fetchCategories } from '@/lib/neo4j-queries';
+import { fetchCategories, fetchMaintainedPhotos } from '@/lib/neo4j-queries';
 import { Category } from '@/lib/neo4j-schema';
 import { Skeleton } from "@/components/ui/skeleton";
 import { User } from 'lucide-react';
 import {CategoriesSheetWrapper} from "@/components/modals/Categories";
+import FloatingButton from "./components/FloatingButton";
+import Image from "next/image";
 
 const INITIAL_COLLAPSED_HEIGHT = 'h-[4.5rem]';
 
@@ -22,6 +24,7 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [maintainedPhotos, setMaintainedPhotos] = useState<{photo_id: string, url?: string, title?: string}[]>([]);
 
   // Fetch categories from Neo4j
   useEffect(() => {
@@ -51,6 +54,33 @@ export default function Home() {
     };
 
     getCategories();
+  }, []);
+
+  // Fetch maintained photos
+  useEffect(() => {
+    const getMaintainedPhotos = async () => {
+      try {
+        setIsLoading(true);
+        try {
+          const photos = await fetchMaintainedPhotos(3);
+          setMaintainedPhotos(photos);
+        } catch (err) {
+          console.error("Failed to fetch maintained photos from Neo4j:", err);
+          // Fallback to mock data
+          setMaintainedPhotos([
+            { photo_id: "photo1", url: "/images/maintained-1.jpg", title: "Park Maintenance" },
+            { photo_id: "photo2", url: "/images/maintained-2.jpg", title: "Street Lighting" },
+            { photo_id: "photo3", url: "/images/maintained-3.jpg", title: "Public Garden" }
+          ]);
+        }
+      } catch (err) {
+        console.error("Failed to load maintained photos:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getMaintainedPhotos();
   }, []);
 
   // Memoize random categories to prevent re-shuffling on hover
@@ -130,16 +160,18 @@ export default function Home() {
 
   }, [infoOpen]);
 
-  const openCategoriesSheet = () => {
-    
-  };
-
   const navigateToAccount = () => {
     router.push('/me');
   };
 
+  const handlePhotoClick = (photoId: string) => {
+    router.push(`/image/${photoId}`);
+  };
+
   return (
     <div className="min-h-screen bg-white text-gray-900 font-['Schibsted_Grotesk',_Arial,_sans-serif] p-8 flex flex-col items-center justify-center">
+      <FloatingButton />
+
       <div className="w-full max-w-lg">
         <main className="flex flex-col gap-4">
           <div className="flex justify-between items-start">
@@ -260,7 +292,7 @@ export default function Home() {
             <div className="overflow-x-auto pb-4 -mx-8 px-8">
               <div className="flex gap-4 w-max pr-8">
                 {isLoading ? (
-                  Array.from({ length: 5 }).map((_, index) => (
+                  Array.from({ length: 3 }).map((_, index) => (
                     <Skeleton 
                       key={`element-skeleton-${index}`}
                       className="h-40 w-60 shrink-0 rounded-2xl"
@@ -268,22 +300,36 @@ export default function Home() {
                   ))
                 ) : (
                   <>
-                    <div className="h-40 w-60 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
-                      <span className="text-gray-400">Image 1</span>
-                    </div>
-                    <div className="h-40 w-60 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
-                      <span className="text-gray-400">Image 2</span>
-                    </div>
-                    <div className="h-40 w-60 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
-                      <span className="text-gray-400">Image 3</span>
-                    </div>
-                    <div className="h-40 w-60 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
-                      <span className="text-gray-400">Image 4</span>
-                    </div>
-                    <div className="h-40 w-60 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
-                      <span className="text-gray-400">Image 5</span>
-                    </div>
-                    <div className="h-40 w-40 shrink-0 rounded-2xl bg-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors">
+                    {maintainedPhotos.map((photo) => (
+                      <div 
+                        key={photo.photo_id} 
+                        className="h-40 w-60 shrink-0 rounded-2xl bg-gray-100 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity relative"
+                        onClick={() => handlePhotoClick(photo.photo_id)}
+                      >
+                        {photo.url ? (
+                          <>
+                            <Image 
+                              src={photo.url} 
+                              alt={photo.title || 'Maintained Element'} 
+                              className="w-full h-full object-cover"
+                              width={240}
+                              height={160}
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                              <span className="text-white text-sm font-medium">{photo.title || 'Maintained Element'}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-gray-600">{photo.title || 'Maintained Element'}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    <div 
+                      className="h-40 w-40 shrink-0 rounded-2xl bg-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors"
+                      onClick={() => router.push('/maintained')}
+                    >
                       <span className="text-gray-600 font-medium">View all</span>
                     </div>
                   </>
