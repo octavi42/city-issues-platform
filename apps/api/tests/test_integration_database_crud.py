@@ -28,7 +28,8 @@ class TestIntegrationDatabaseCRUD(unittest.TestCase):
         self.photo_props = {
             'photo_id': 'intg_photo_001',
             'url': 'http://example.com/integration.jpg',
-            'location': self.city_props['location']
+            'location': self.city_props['location'],
+            'score': 50
         }
         self.event_props = {
             'event_id': 'intg_event_001',

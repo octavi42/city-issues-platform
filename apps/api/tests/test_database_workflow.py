@@ -44,7 +44,8 @@ class TestDatabaseWorkflow(unittest.TestCase):
         photo_props = {
             'photo_id': 'photo123',
             'url': 'http://example.com/photo.jpg',
-            'location': city_props['location']
+            'location': city_props['location'],
+            'score': 50
         }
         event_props = {
             'event_id': 'event123',

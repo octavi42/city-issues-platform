@@ -65,7 +65,10 @@ def add_maintenance(props: dict) -> dict:
     return add_node("Maintenance", "event_id", props)
 
 def add_photo(props: dict) -> dict:
-    return add_node("Photo", "photo_id", props)
+    # Ensure a default score property for new Photo nodes
+    props_with_score = props.copy()
+    props_with_score["score"] = 50
+    return add_node("Photo", "photo_id", props_with_score)
 
 def add_analyzer(props: dict) -> dict:
     return add_node("Analyzer", "analyzer_id", props)
