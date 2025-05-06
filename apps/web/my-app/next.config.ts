@@ -10,6 +10,9 @@ const nextConfig = {
     NEO4J_USERNAME: process.env.NEO4J_USERNAME,
     NEO4J_PASSWORD: process.env.NEO4J_PASSWORD,
   },
+  experimental: {
+    allowedDevOrigins: ['localhost', '192.168.1.248'],
+  },
 };
 
 export default nextConfig;

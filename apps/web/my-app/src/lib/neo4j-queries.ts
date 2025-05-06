@@ -28,6 +28,14 @@ interface MaintainedPhoto {
   [key: string]: unknown;
 }
 
+// Add this interface near the top of your file where other interfaces are defined
+interface MaintenanceNode {
+  maintenance_id?: string;
+  item_id?: string;
+  id?: string;
+  [key: string]: unknown;
+}
+
 /** Fetch all User nodes */
 export async function fetchUsers(): Promise<User[]> {
   return getNodes<User>('User');
@@ -219,4 +227,94 @@ export async function fetchMaintainedPhotos(limit: number = 3): Promise<Maintain
       { photo_id: "photo3", url: "/images/maintained-3.jpg", title: "Public Garden" }
     ];
   }
+}
+
+/** 
+ * Fetch user's photos and their related Issue or Maintenance nodes
+ * Returns photos with status: 
+ * - "Open" or "In Progress" if connected to Issue
+ * - "Maintained" if connected to Maintenance
+ * - "In Progress" if not connected to either
+ */
+export async function fetchUserPhotos(userId: string): Promise<Array<{
+  photo_id: string;
+  url?: string;
+  title?: string;
+  status: string;
+  type: 'issue' | 'maintenance' | 'in_progress';
+  related_node_id?: string;
+}>> {
+  const cypher = `
+    MATCH (u:User)-[:UPLOADED_PHOTO]->(p:Photo)
+    WHERE u.user_id = $userId
+    OPTIONAL MATCH (p)-[:TRIGGERS_EVENT]->(i:Issue)
+    OPTIONAL MATCH (p)-[:CONTAINS]->(m:Maintenance)
+    RETURN 
+      properties(p) AS photo,
+      CASE 
+        WHEN i IS NOT NULL THEN properties(i)
+        ELSE NULL
+      END AS issue,
+      CASE 
+        WHEN m IS NOT NULL THEN properties(m)
+        ELSE NULL
+      END AS maintenance
+  `;
+  
+  const results = await runQuery<{
+    photo: Photo;
+    issue: DetectionEvent | null;
+    maintenance: MaintenanceNode | null;
+  }>(cypher, { userId });
+  
+  console.log("Neo4j query results:", JSON.stringify(results, null, 2));
+  
+  return results.map(record => {
+    const { photo, issue, maintenance } = record;
+    
+    // Ensure photo has URL property
+    if (!photo.url && photo.image_url && typeof photo.image_url === 'string') {
+      photo.url = photo.image_url;
+    }
+    
+    // Create appropriate title if missing
+    const title = (photo.title || (issue?.name || 'Reported Item')) as string;
+    
+    // Determine status and type
+    let status = "In Progress";
+    let type: 'issue' | 'maintenance' | 'in_progress' = 'in_progress';
+    let related_node_id: string | undefined = undefined;
+    
+    if (issue) {
+      status = issue.status || "Open";
+      type = 'issue';
+      related_node_id = issue.event_id;
+    } else if (maintenance) {
+      status = "Maintained";
+      type = 'maintenance';
+      
+      // Try to find an ID property in the maintenance object
+      // Check common ID field patterns
+      related_node_id = maintenance.maintenance_id || 
+                         maintenance.item_id || 
+                         maintenance.id || 
+                         (typeof maintenance === 'object' && maintenance !== null ? 
+                            Object.keys(maintenance).find(key => key.endsWith('_id')) ? 
+                            maintenance[Object.keys(maintenance).find(key => key.endsWith('_id')) as string] as string : 
+                            undefined 
+                         : undefined);
+      
+      console.log("Maintenance object:", maintenance);
+      console.log("Extracted related_node_id:", related_node_id);
+    }
+    
+    return {
+      photo_id: photo.photo_id,
+      url: photo.url,
+      title,
+      status,
+      type,
+      related_node_id
+    };
+  });
 }

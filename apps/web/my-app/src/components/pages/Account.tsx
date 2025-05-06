@@ -1,23 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, CheckCircle, AlertCircle, Bell } from "lucide-react";
+import { MapPin, CheckCircle, AlertCircle, Bell, Camera } from "lucide-react";
+import { fetchUserPhotos } from "@/lib/neo4j-queries";
+import { useVisitorId } from "@/app/hooks/useVisitorId";
+import Image from "next/image";
 
-interface Issue {
-    id: number;
-    title: string;
+interface UserPhoto {
+    photo_id: string;
+    url?: string;
+    title?: string;
     status: string;
+    type: 'issue' | 'maintenance' | 'in_progress';
+    related_node_id?: string;
 }
 
 const Account = () => {
     const router = useRouter();
+    const visitorId = useVisitorId();
     const [isLocationEnabled, setIsLocationEnabled] = useState(false);
     const [isVerified, setIsVerified] = useState(false);
-    const [reportedIssues] = useState<Issue[]>([
-        { id: 1, title: "Broken streetlight", status: "Open" },
-        { id: 2, title: "Pothole on Main St", status: "In Progress" },
-    ]);
+    const [userPhotos, setUserPhotos] = useState<UserPhoto[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Fetch user photos when visitor ID is available
+    useEffect(() => {
+        if (!visitorId) {
+            // Keep loading state true if we're still waiting for visitor ID
+            return;
+        }
+        
+        const loadUserPhotos = async () => {
+            try {
+                const photos = await fetchUserPhotos(visitorId);
+                setUserPhotos(photos);
+            } catch (error) {
+                console.error("Error fetching user photos:", error);
+                setUserPhotos([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadUserPhotos();
+    }, [visitorId]);
 
     const handleVerify = () => {
         setIsVerified(true);
@@ -34,12 +61,22 @@ const Account = () => {
         }
     };
 
-    const handleIssueClick = (issue: Issue) => {
-        if (issue.status === "Open") {
-            // Create a slug from the issue title
-            const slug = issue.title.toLowerCase().replace(/\s+/g, '-');
-            router.push(`/issue/${slug}`);
+    const handlePhotoClick = (photo: UserPhoto) => {
+        console.log("Photo clicked:", photo);
+        console.log("Type check:", photo.type === 'maintenance');
+        console.log("ID check:", !!photo.related_node_id);
+        console.log("Full condition:", photo.type === 'maintenance' && !!photo.related_node_id);
+        
+        if (photo.type === 'issue' && photo.related_node_id) {
+            // Navigate to issue page using the event_id
+            router.push(`/issue/${photo.related_node_id}`);
+        } else if (photo.type === 'maintenance') {
+            // For maintenance items, navigate using photo_id regardless of related_node_id
+            // This ensures navigation works even if maintenance ID is not properly extracted
+            console.log("Maintenance condition triggered!");
+            router.push(`/image/${photo.photo_id}`);
         }
+        // Do nothing for 'in_progress' type - it's not clickable
     };
 
     return (
@@ -107,38 +144,65 @@ const Account = () => {
                     Reported Issues
                 </h2>
                 
-                {reportedIssues.length > 0 ? (
+                {isLoading ? (
+                    <div className="text-center p-8 text-[#787575] bg-[#F7F7F7] rounded-[1.875rem] mt-4">
+                        {!visitorId 
+                            ? "Identifying your account..." 
+                            : "Loading your reported items..."}
+                    </div>
+                ) : userPhotos.length > 0 ? (
                     <div>
-                        {reportedIssues.map(issue => (
+                        {userPhotos.map(photo => (
                             <div 
-                                key={issue.id} 
-                                className={`bg-white rounded-2xl p-4 px-6 mb-4 border border-[#E0E0E0] flex justify-between items-center ${issue.status === "Open" ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
-                                onClick={() => handleIssueClick(issue)}
+                                key={photo.photo_id} 
+                                className={`bg-white rounded-2xl p-4 px-6 mb-4 border border-[#E0E0E0] flex justify-between items-center ${
+                                    photo.type !== 'in_progress' ? "cursor-pointer hover:shadow-md transition-shadow" : ""
+                                }`}
+                                onClick={() => handlePhotoClick(photo)}
                             >
-                                <span className="text-base font-medium">{issue.title}</span>
+                                <div className="flex items-center gap-3">
+                                    {photo.url ? (
+                                        <div className="w-12 h-12 rounded-md overflow-hidden">
+                                            <Image src={photo.url} alt={photo.title || 'Reported item'} width={48} height={48} className="w-full h-full object-cover" />
+                                        </div>
+                                    ) : (
+                                        <div className="w-12 h-12 rounded-md bg-[#F7F7F7] flex items-center justify-center">
+                                            <Camera size={20} className="text-[#787575]" />
+                                        </div>
+                                    )}
+                                    <span className="text-base font-medium">{photo.title || 'Reported Item'}</span>
+                                </div>
                                 <span className={`inline-block py-1 px-3 rounded-2xl text-sm font-medium ${
-                                    issue.status === "Open" 
+                                    photo.status === "Open" 
                                         ? "bg-[#E6F0FF] text-[#075CDD]" 
-                                        : issue.status === "In Progress" 
+                                        : photo.status === "In Progress" 
                                             ? "bg-[#F7F7E6] text-[#728019]" 
-                                            : "bg-[#E8F5E9] text-[#3B7B3B]"
+                                            : photo.status === "Maintained"
+                                                ? "bg-[#E8F5E9] text-[#3B7B3B]"
+                                                : "bg-[#F7F7E6] text-[#728019]"
                                 }`}>
-                                    {issue.status}
+                                    {photo.status}
                                 </span>
                             </div>
                         ))}
                         
-                        <button className="w-full bg-white text-[#333] py-3 text-base font-semibold rounded-2xl border border-[#E0E0E0] cursor-pointer flex items-center justify-center gap-2">
+                        <button 
+                            className="w-full bg-white text-[#333] py-3 text-base font-semibold rounded-2xl border border-[#E0E0E0] cursor-pointer flex items-center justify-center gap-2"
+                            onClick={() => router.push('/issues')}
+                        >
                             <Bell size={18} />
                             View All Issues
                         </button>
                     </div>
                 ) : (
                     <div className="text-center p-8 text-[#787575] bg-[#F7F7F7] rounded-[1.875rem] mt-4">
-                        <AlertCircle size={24} className="mb-2" />
+                        <AlertCircle size={24} className="mx-auto mb-2" />
                         <p>No reported issues yet</p>
                         
-                        <button className="w-full bg-[#075CDD] text-white py-3 text-base font-semibold rounded-2xl border-none cursor-pointer flex items-center justify-center gap-2 mt-4">
+                        <button 
+                            className="w-full bg-[#075CDD] text-white py-3 text-base font-semibold rounded-2xl border-none cursor-pointer flex items-center justify-center gap-2 mt-4"
+                            onClick={() => router.push('/report')}
+                        >
                             Report an Issue
                         </button>
                     </div>

@@ -7,6 +7,20 @@ import "@/components/examples/DetachedSheet/DetachedSheet.css";
 import "@/components/examples/DetachedSheet/ExampleDetachedSheet.css";
 import { useVisitorId } from '../hooks/useVisitorId';
 import { useUserLocation } from '../hooks/useUserLocation';
+import { analyzeImage } from '@/lib/services/visionService';
+
+// Helper function to convert data URL to File object
+function dataURLtoFile(dataUrl: string, filename: string): File {
+  const arr = dataUrl.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+}
 
 const CustomDetachedSheet = () => {
   const [presented, setPresented] = useState(false);
@@ -20,6 +34,8 @@ const CustomDetachedSheet = () => {
   const [isIOS, setIsIOS] = useState(false);
   const [imageData, setImageData] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Detect mobile and iOS
   useEffect(() => {
@@ -41,7 +57,7 @@ const CustomDetachedSheet = () => {
   }, [location]);
 
   // When sheet opens, require precise geolocation if not already granted
-  const [requireLocation, setRequireLocation] = useState(false);
+  const [, setRequireLocation] = useState(false);
   useEffect(() => {
     if (presented) {
       // if no location or only IP fallback, ask for geolocation
@@ -295,19 +311,53 @@ const CustomDetachedSheet = () => {
     }
   };
   
-  const handleSendImage = () => {
-    // Here you would send the image data to your backend or process it
-    console.log("Sending image:", imageData);
-    
-    // TODO: Add your sending logic here
-    
-    // Reset state and close sheet
-    setImageData(null);
-    setShowConfirmation(false);
-    setPresented(true);
-    
-    // Optionally show a success message
-    alert("Image sent successfully!");
+  const handleSendImage = async () => {
+    if (!imageData || !visitorId || !location) {
+      setUploadError("Missing required data (image, user ID, or location)");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setUploadError(null);
+      
+      // Convert data URL to File object
+      const imageFile = dataURLtoFile(imageData, `photo-${Date.now()}.jpg`);
+      
+      // Get city and country info - in a real app, you might use a geocoding service
+      // For now we'll use placeholder values
+      const city = "Cluj-Napoca"; // This should come from geocoding the coordinates
+      const country = "Romania";   // This should come from geocoding the coordinates
+      
+      // Prepare the request
+      const request = {
+        image: imageFile,
+        user_id: visitorId,
+        location: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          city: city,
+          country: country
+        }
+      };
+      
+      // Send the image for analysis
+      const response = await analyzeImage(request);
+      console.log("Analysis response:", response);
+      
+      // Reset state and close sheet
+      setImageData(null);
+      setShowConfirmation(false);
+      setIsUploading(false);
+      setPresented(false); // Close the sheet on success
+      
+      // Show success message
+      alert("Image uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      setIsUploading(false);
+      setUploadError(error instanceof Error ? error.message : "An error occurred during upload");
+    }
   };
 
   return (
@@ -447,27 +497,33 @@ const CustomDetachedSheet = () => {
                         style={{ objectFit: 'cover' }}
                       />
                     </div>
-                    <div className="flex w-full gap-3">
+                    
+                    {uploadError && (
+                      <div className="w-full bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        <p>{uploadError}</p>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between w-full">
                       <button
                         onClick={() => {
-                          setImageData(null);
                           setShowConfirmation(false);
+                          setImageData(null);
                         }}
-                        className="flex-1 bg-gray-500 text-white p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-600 transition-colors"
+                        className="bg-gray-300 text-gray-800 px-6 py-2 rounded-lg"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
                         Cancel
                       </button>
                       <button
                         onClick={handleSendImage}
-                        className="flex-1 bg-green-500 text-white p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
+                        disabled={isUploading}
+                        className={`px-6 py-2 rounded-lg ${
+                          isUploading 
+                            ? 'bg-gray-400 text-gray-800 cursor-not-allowed' 
+                            : 'bg-blue-500 text-white hover:bg-blue-600'
+                        }`}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
-                        </svg>
-                        Send
+                        {isUploading ? 'Uploading...' : 'Send Image'}
                       </button>
                     </div>
                   </div>
@@ -475,7 +531,7 @@ const CustomDetachedSheet = () => {
                   <>  {
                     // If location access is required, prompt user
                   }
-                  {requireLocation ? (
+                  {false ? (
                     <div className="p-4 flex flex-col items-center gap-4">
                       <p className="text-center text-gray-700">
                         To upload an image, please enable precise location access.
