@@ -39,6 +39,30 @@ export interface RelevanceResponse {
   delta_score: number;
 }
 
+// Define error response types
+interface ErrorResponse {
+  message?: string;
+  status?: number;
+  statusText?: string;
+  rawResponse?: string;
+  parseError?: boolean;
+  [key: string]: unknown;
+}
+
+interface EnhancedError {
+  message: string;
+  type: 'network' | 'abort' | 'unknown';
+  cors?: boolean;
+  requestDetails: {
+    url: string;
+    method: string;
+    mode: string;
+    credentials: string;
+  };
+  originalError: unknown;
+  [key: string]: unknown;
+}
+
 /**
  * Submit an image for analysis
  */
@@ -50,27 +74,111 @@ export async function analyzeImage(data: AnalysisRequest): Promise<AnalysisRespo
 
   console.log('Sending image to Vision API:', formData);
   
-  const response = await fetch(`${VISION_API_URL}${ENDPOINTS.ANALYZE}`, {
-    method: 'POST',
-    body: formData,
-    credentials: 'include'
-  });
+  // Ensure no double slashes in URL
+  const apiUrl = VISION_API_URL.endsWith('/') 
+    ? `${VISION_API_URL}${ENDPOINTS.ANALYZE.substring(1)}` 
+    : `${VISION_API_URL}${ENDPOINTS.ANALYZE}`;
   
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    console.error('Error response:', errorData);
-    throw {
-      message: errorData.message || 'An error occurred while analyzing the image',
-      status: response.status,
+  console.log('Request URL:', apiUrl);
+  
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      body: formData,
+      mode: 'cors',
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      let errorData: ErrorResponse = {};
+      
+      try {
+        // Try to parse error response as JSON
+        errorData = await response.json();
+      } catch (parseError) {
+        console.warn('Error parsing error response as JSON:', parseError);
+        // If JSON parsing failed, get text content instead
+        try {
+          const textContent = await response.text();
+          errorData = { 
+            rawResponse: textContent,
+            parseError: true
+          };
+        } catch (textError) {
+          console.warn('Error getting text content from response:', textError);
+          errorData = { 
+            message: 'Could not parse error response',
+            status: response.status,
+            statusText: response.statusText
+          };
+        }
+      }
+      
+      console.error('Error response details:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries([...response.headers.entries()]),
+        errorData
+      });
+      
+      throw {
+        message: errorData.message || `API error: ${response.status} ${response.statusText}`,
+        status: response.status,
+        details: errorData,
+        rawHeaders: Object.fromEntries([...response.headers.entries()])
+      };
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Fetch error in analyzeImage:', error);
+    
+    // Create a more detailed error object
+    const enhancedError: EnhancedError = {
+      message: '',
+      type: 'unknown',
+      originalError: error,
+      requestDetails: {
+        url: apiUrl,
+        method: 'POST',
+        mode: 'cors',
+        credentials: 'include'
+      }
     };
+    
+    if (error instanceof TypeError) {
+      enhancedError.message = `Network error: ${error.message}`;
+      enhancedError.type = 'network';
+      enhancedError.cors = error.message.includes('CORS') || error.message.includes('cross-origin');
+    } else if (error instanceof DOMException && error.name === 'AbortError') {
+      enhancedError.message = 'Request was aborted';
+      enhancedError.type = 'abort';
+    } else if (typeof error === 'object' && error !== null) {
+      const errorObj = error as Record<string, unknown>;
+      enhancedError.message = typeof errorObj.message === 'string' 
+        ? errorObj.message 
+        : 'Unknown error occurred';
+      
+      // Copy over properties from the original error
+      Object.entries(errorObj).forEach(([key, value]) => {
+        enhancedError[key] = value;
+      });
+    } else {
+      enhancedError.message = String(error);
+    }
+    
+    throw enhancedError;
   }
-  
-  return await response.json();
 }
 
 /**
  * Submit relevance feedback
  */
 export async function submitRelevanceFeedback(data: RelevanceRequest): Promise<RelevanceResponse> {
-  return post<RelevanceResponse>(`${VISION_API_URL}${ENDPOINTS.RELEVANCE}`, data);
+  // Ensure no double slashes in URL
+  const apiUrl = VISION_API_URL.endsWith('/') 
+    ? `${VISION_API_URL}${ENDPOINTS.RELEVANCE.substring(1)}` 
+    : `${VISION_API_URL}${ENDPOINTS.RELEVANCE}`;
+    
+  return post<RelevanceResponse>(apiUrl, data);
 } 

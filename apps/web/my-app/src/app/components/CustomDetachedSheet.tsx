@@ -36,6 +36,7 @@ const CustomDetachedSheet = () => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   // Detect mobile and iOS
   useEffect(() => {
@@ -318,6 +319,7 @@ const CustomDetachedSheet = () => {
     try {
       setIsUploading(true);
       setUploadError(null);
+      setErrorDetails(null);
       
       // Convert data URL to File object
       const imageFile = dataURLtoFile(imageData, `photo-${Date.now()}.jpg`);
@@ -339,22 +341,64 @@ const CustomDetachedSheet = () => {
         }
       };
       
-      // Send the image for analysis
-      const response = await analyzeImage(request);
-      console.log("Analysis response:", response);
+      // Log the API URL for debugging
+      console.log("API URL:", `${process.env.NEXT_PUBLIC_VISION_API_URL || 'http://localhost:8000'}/analyze`);
       
-      // Reset state and close sheet
-      setImageData(null);
-      setShowConfirmation(false);
-      setIsUploading(false);
-      setPresented(false); // Close the sheet on success
-      
-      // Show success message
-      alert("Image uploaded successfully!");
+      try {
+        // Send the image for analysis
+        const response = await analyzeImage(request);
+        console.log("Analysis response:", response);
+        
+        // Reset state and close sheet
+        setImageData(null);
+        setShowConfirmation(false);
+        setIsUploading(false);
+        setPresented(false); // Close the sheet on success
+        
+        // Show success message
+        alert("Image uploaded successfully!");
+      } catch (networkError) {
+        console.error("API request error:", networkError);
+        
+        // Capture detailed error information
+        let errorMessage = "";
+        let detailedInfo = "";
+        
+        if (networkError instanceof Error) {
+          errorMessage = networkError.message;
+          detailedInfo = `Error name: ${networkError.name}\n`;
+          detailedInfo += `Message: ${networkError.message}\n`;
+          
+          // Check if it's a TypeError (often indicates CORS or network issues)
+          if (networkError instanceof TypeError) {
+            detailedInfo += "This appears to be a network error or CORS issue.\n";
+          }
+          
+          // Add stack trace if available
+          if (networkError.stack) {
+            detailedInfo += `Stack: ${networkError.stack}\n`;
+          }
+        } else if (typeof networkError === 'object' && networkError !== null) {
+          try {
+            errorMessage = JSON.stringify(networkError);
+            detailedInfo = `Full error object: ${JSON.stringify(networkError, null, 2)}`;
+          } catch {
+            errorMessage = "Unserializable error object";
+            detailedInfo = "Could not stringify error object";
+          }
+        } else {
+          errorMessage = String(networkError);
+          detailedInfo = "Unknown error format";
+        }
+        
+        setUploadError(`Network error: ${errorMessage}`);
+        setErrorDetails(detailedInfo);
+        setIsUploading(false);
+      }
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("Error preparing image upload:", error);
       setIsUploading(false);
-      setUploadError(error instanceof Error ? error.message : "An error occurred during upload");
+      setUploadError("Error preparing image: " + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -498,7 +542,21 @@ const CustomDetachedSheet = () => {
                     
                     {uploadError && (
                       <div className="w-full bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        <p className="font-bold">Error:</p>
                         <p>{uploadError}</p>
+                        
+                        {/* Show detailed error information for debugging */}
+                        {errorDetails && (
+                          <div className="mt-2">
+                            <p className="font-bold">Technical Details:</p>
+                            <pre className="mt-1 bg-red-50 p-2 rounded text-xs whitespace-pre-wrap">
+                              {errorDetails}
+                            </pre>
+                            <p className="mt-2 text-xs">
+                              API URL: {process.env.NEXT_PUBLIC_VISION_API_URL || 'http://localhost:8000'}/analyze
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
                     
