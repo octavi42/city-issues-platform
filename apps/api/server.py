@@ -3,9 +3,13 @@
 from fastapi import FastAPI, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import os
-import asyncio
 # Prepare context and invoke vision agent
+import asyncio
 from ai.openai.runner import run_with_image_url
+
+def _run_agent_sync(image_url, user, location_dict):
+    """Run the vision agent in a fresh event loop in this thread."""
+    return asyncio.run(run_with_image_url(image_url, user, location_dict))
 
 import json
 from pydantic import BaseModel
@@ -76,12 +80,7 @@ async def analyze(
         print(f"Running city inspector agent on image URL: {image_url}")
         print(f"User: {user}")
         print(f"Location: {location_dict}")
-        result = await asyncio.to_thread(
-            run_with_image_url,
-            image_url,
-            user,
-            location_dict,
-        )
+        result = await asyncio.to_thread(_run_agent_sync, image_url, user, location_dict)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis error: {e}")
     return result

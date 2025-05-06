@@ -22,7 +22,7 @@ from db.crud.create_nodes import add_city, add_user, add_photo
 from db.crud.create_edges import add_uploaded_photo
 from db.crud.read_nodes import search_node
 
-def run_with_image_url(image_url: str, user: dict, location: dict, message: str = "Analyze this image and report the main issue or well-maintained element"):
+async def run_with_image_url(image_url: str, user: dict, location: dict, message: str = "Analyze this image and report the main issue or well-maintained element"):
     """
     Run the city inspector agent with an image URL, properly formatted for vision.
     """
@@ -83,7 +83,11 @@ def run_with_image_url(image_url: str, user: dict, location: dict, message: str 
         ]
     }]
     city_inspector.model_settings.temperature = 0.0
-    result = Runner.run_sync(city_inspector, input=multimodal_input)
+    # Dispatch to the agents Runner: prefer async run if available
+    if hasattr(Runner, "run"):
+        result = await Runner.run(city_inspector, input=multimodal_input)
+    else:
+        result = Runner.run_sync(city_inspector, input=multimodal_input)
     return result
 
 
