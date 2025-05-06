@@ -4,24 +4,11 @@
 
 import { post } from '../api';
 
-// Base URL for Vision API - can be overridden with env var
-const VISION_API_URL = process.env.NEXT_PUBLIC_VISION_API_URL || 'http://localhost:8000';
-
-// API endpoints - direct API endpoints
-const DIRECT_ENDPOINTS = {
-  ANALYZE: '/analyze',
-  RELEVANCE: '/relevance'
-};
-
-// Local proxy API endpoints - use these to avoid mobile connectivity issues
-const PROXY_ENDPOINTS = {
+// API endpoints - using Next.js API routes to bypass CORS
+const API_ENDPOINTS = {
   ANALYZE: '/api/vision/analyze',
   RELEVANCE: '/api/vision/relevance'
 };
-
-// Detect if we're running on mobile
-const isMobileDevice = typeof window !== 'undefined' && 
-  (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
 
 // Type definitions
 export interface AnalysisRequest {
@@ -82,35 +69,13 @@ export async function analyzeImage(data: AnalysisRequest): Promise<AnalysisRespo
   formData.append('user_id', data.user_id);
   formData.append('location', JSON.stringify(data.location));
 
-  // Use proxy API endpoint on mobile to avoid connectivity issues
-  // and direct API for desktop browsers
-  let apiUrl: string;
-  
-  if (isMobileDevice) {
-    console.log('Using proxy API endpoint for mobile device');
-    apiUrl = PROXY_ENDPOINTS.ANALYZE;
-  } else {
-    // Direct API call with proper URL formatting
-    apiUrl = VISION_API_URL.endsWith('/') 
-      ? `${VISION_API_URL}${DIRECT_ENDPOINTS.ANALYZE.substring(1)}` 
-      : `${VISION_API_URL}${DIRECT_ENDPOINTS.ANALYZE}`;
-  }
-  
-  console.log('Sending image to API:', apiUrl);
+  console.log('Sending image to API proxy:', formData);
   
   try {
-    const fetchOptions: RequestInit = {
+    const response = await fetch(API_ENDPOINTS.ANALYZE, {
       method: 'POST',
       body: formData,
-    };
-    
-    // Only add CORS mode and credentials for direct API calls
-    if (!isMobileDevice) {
-      fetchOptions.mode = 'cors';
-      fetchOptions.credentials = 'include';
-    }
-    
-    const response = await fetch(apiUrl, fetchOptions);
+    });
     
     if (!response.ok) {
       let errorData: ErrorResponse = {};
@@ -162,10 +127,10 @@ export async function analyzeImage(data: AnalysisRequest): Promise<AnalysisRespo
       type: 'unknown',
       originalError: error,
       requestDetails: {
-        url: apiUrl,
+        url: API_ENDPOINTS.ANALYZE,
         method: 'POST',
-        mode: isMobileDevice ? 'no-cors' : 'cors',
-        credentials: isMobileDevice ? 'same-origin' : 'include'
+        mode: 'cors',
+        credentials: 'include'
       }
     };
     
@@ -198,19 +163,5 @@ export async function analyzeImage(data: AnalysisRequest): Promise<AnalysisRespo
  * Submit relevance feedback
  */
 export async function submitRelevanceFeedback(data: RelevanceRequest): Promise<RelevanceResponse> {
-  // For consistency, also use the proxy endpoint for relevance feedback on mobile
-  let apiUrl: string;
-  
-  if (isMobileDevice) {
-    console.log('Using proxy API endpoint for mobile device');
-    // If we have a proxy endpoint for relevance, use it
-    apiUrl = PROXY_ENDPOINTS.RELEVANCE;
-    return post<RelevanceResponse>(apiUrl, data);
-  } else {
-    // Direct API call with proper URL formatting
-    apiUrl = VISION_API_URL.endsWith('/') 
-      ? `${VISION_API_URL}${DIRECT_ENDPOINTS.RELEVANCE.substring(1)}` 
-      : `${VISION_API_URL}${DIRECT_ENDPOINTS.RELEVANCE}`;
-    return post<RelevanceResponse>(apiUrl, data);
-  }
+  return post<RelevanceResponse>(API_ENDPOINTS.RELEVANCE, data);
 } 

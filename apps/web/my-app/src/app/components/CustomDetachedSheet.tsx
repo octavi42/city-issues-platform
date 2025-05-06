@@ -553,7 +553,7 @@ const CustomDetachedSheet = () => {
                               {errorDetails}
                             </pre>
                             <p className="mt-2 text-xs">
-                              API URL: {process.env.NEXT_PUBLIC_VISION_API_URL || 'http://localhost:8000'}/analyze
+                              Using API Proxy: /api/vision/analyze (which forwards to {process.env.NEXT_PUBLIC_VISION_API_URL || 'https://api.cristeaz.com'}/analyze)
                             </p>
                           </div>
                         )}
