@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """FastAPI server for City-Vision-Inspector."""
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import os
-import tempfile
-import shutil
-import uuid
-from pathlib import Path
-
-from utils.env_loader import load_dotenv
-from utils.s3 import upload_file_to_s3
 import asyncio
 # Prepare context and invoke vision agent
 from ai.openai.runner import run_with_image_url
@@ -43,15 +36,14 @@ app.add_middleware(
     expose_headers=["*"],  # Add this to expose all response headers
 )
 
-@app.post("/analyze", summary="Receive image, user, and location for analysis")
+@app.post("/analyze", summary="Receive image URL, user, and location for analysis")
 async def analyze(
-    image: UploadFile = File(...),
+    image_url: str = Form(...),
     user_id: str = Form(...),
     location: str = Form(...),
 ):
-    """Basic analyze endpoint accepting an image file, user ID, and location info."""
-    # Print received inputs for now
-    print(f"Received image file: {image.filename}")
+    """Basic analyze endpoint accepting an image URL, user ID, and location info."""
+    print(f"Received image URL: {image_url}")
     print(f"User ID: {user_id}")
     # Parse and validate location JSON
     try:
@@ -70,26 +62,6 @@ async def analyze(
     except (TypeError, ValueError):
         raise HTTPException(status_code=400, detail="Invalid types for location fields")
     print(f"Location: latitude={latitude}, longitude={longitude}, city={city}, country={country}")
-
-    # Upload image to S3
-    load_dotenv()
-    bucket = os.getenv("AWS_S3_BUCKET")
-    if not bucket:
-        raise HTTPException(status_code=500, detail="AWS_S3_BUCKET environment variable is not set")
-    # Save incoming file to a temporary location
-    suffix = Path(image.filename).suffix
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        shutil.copyfileobj(image.file, tmp)
-        tmp_path = tmp.name
-    # Generate a unique object name
-    object_name = f"{uuid.uuid4().hex}{suffix}"
-    try:
-        image_url = upload_file_to_s3(tmp_path, bucket, object_name)
-    except Exception as e:
-        os.remove(tmp_path)
-        raise HTTPException(status_code=500, detail=f"Failed to upload image: {e}")
-    # Clean up temp file after upload
-    os.remove(tmp_path)
 
     # Build user and location dicts for the agent
     user = {"id": user_id, "name": user_id}
