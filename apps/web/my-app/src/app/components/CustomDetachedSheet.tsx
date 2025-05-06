@@ -263,29 +263,27 @@ const CustomDetachedSheet = () => {
   };
   
   const savePhoto = () => {
-    // Get photo data and return to the sheet view with the image
-    const photo = photoRef.current;
-    if (photo) {
+    if (photoRef.current && videoRef.current) {
+      const photo = photoRef.current.toDataURL('image/jpeg');
+      setImageData(photo);
+      setShowConfirmation(true);
+      setHasPhoto(false);
+      
       try {
-        const photoData = photo.toDataURL('image/jpeg');
-        setImageData(photoData);
+        // Stop the camera when we're done with it
+        const tracks = videoRef.current.srcObject instanceof MediaStream ? 
+          videoRef.current.srcObject.getTracks() : [];
+        tracks.forEach(track => track.stop());
         
-        // Close camera but show confirmation UI
-        closeCamera();
-        setShowConfirmation(true);
-        setPresented(true);
-      } catch (err: unknown) {
-        console.error("Error saving photo:", err);
-        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        // Close the camera UI but keep the sheet open for confirmation
+        setShowCamera(false);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("Error stopping camera:", errorMessage);
         alert("Failed to save photo: " + errorMessage);
         closeCamera();
       }
     }
-  };
-  
-  const handleTakePhotoClick = () => {
-    // Always try to open camera
-    openCamera();
   };
   
   // Setup file input for the upload option
@@ -554,15 +552,6 @@ const CustomDetachedSheet = () => {
                         </Sheet.Description>
                       </div>
                       <div className="flex flex-col gap-4 p-4">
-                        <button
-                          className="bg-blue-500 text-white p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
-                          onClick={handleTakePhotoClick}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                          </svg>
-                          Take a Photo
-                        </button>
                         <button
                           className="bg-gray-200 text-gray-800 p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors"
                           onClick={() => fileInputRef.current?.click()}
