@@ -10,6 +10,7 @@
     "dump-schema": "node scripts/dump-schema.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.804.0",
     "@fingerprintjs/fingerprintjs": "^4.6.2",
     "@next/env": "^15.3.1",
     "@radix-ui/react-dialog": "^1.1.13",
@@ -27,7 +28,8 @@
     "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwind-merge": "^3.2.0"
+    "tailwind-merge": "^3.2.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

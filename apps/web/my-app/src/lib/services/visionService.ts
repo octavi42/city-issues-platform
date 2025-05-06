@@ -2,17 +2,18 @@
  * Vision Service - Handles API calls for City-Vision-Inspector
  */
 
-import { post } from '../api';
+// Base URL for Vision API - can be overridden with env var
+const VISION_API_URL = process.env.NEXT_PUBLIC_VISION_API_URL || 'https://api.cristeaz.com';
 
-// API endpoints - using Next.js API routes to bypass CORS
-const API_ENDPOINTS = {
-  ANALYZE: '/api/vision/analyze',
-  RELEVANCE: '/api/vision/relevance'
+// API endpoints
+const ENDPOINTS = {
+  ANALYZE: '/analyze',
+  RELEVANCE: '/relevance'
 };
 
 // Type definitions
 export interface AnalysisRequest {
-  image: File;
+  image?: File; // Now optional since we'll prioritize imageUrl
   user_id: string;
   location: {
     latitude: number;
@@ -20,6 +21,7 @@ export interface AnalysisRequest {
     city: string;
     country: string;
   };
+  imageUrl: string; // S3 image URL is now required
 }
 
 export interface AnalysisResponse {
@@ -46,7 +48,7 @@ interface ErrorResponse {
   [key: string]: unknown;
 }
 
-interface EnhancedError {
+export interface EnhancedError {
   message: string;
   type: 'network' | 'abort' | 'unknown';
   cors?: boolean;
@@ -61,20 +63,36 @@ interface EnhancedError {
 }
 
 /**
- * Submit an image for analysis
+ * Submit an image for analysis using its S3 URL
+ * This makes a direct request to the Vision API without going through the Next.js API routes
  */
 export async function analyzeImage(data: AnalysisRequest): Promise<AnalysisResponse> {
   const formData = new FormData();
-  formData.append('image', data.image);
+  
+  // Only use the image URL, never send the file
+  // Try multiple parameter names to maximize compatibility
+  formData.append('image_url', data.imageUrl);
+  formData.append('imageUrl', data.imageUrl);
+  formData.append('url', data.imageUrl);
+  console.log('Using image URL:', data.imageUrl);
+  
   formData.append('user_id', data.user_id);
   formData.append('location', JSON.stringify(data.location));
 
-  console.log('Sending image to API proxy:', formData);
+  console.log('Making direct request to Vision API with image URL');
+  
+  // Ensure no double slashes in URL
+  const apiUrl = VISION_API_URL.endsWith('/') 
+    ? `${VISION_API_URL}${ENDPOINTS.ANALYZE.substring(1)}` 
+    : `${VISION_API_URL}${ENDPOINTS.ANALYZE}`;
+  
+  console.log('Request URL:', apiUrl);
   
   try {
-    const response = await fetch(API_ENDPOINTS.ANALYZE, {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       body: formData,
+      mode: 'cors',
     });
     
     if (!response.ok) {
@@ -127,7 +145,7 @@ export async function analyzeImage(data: AnalysisRequest): Promise<AnalysisRespo
       type: 'unknown',
       originalError: error,
       requestDetails: {
-        url: API_ENDPOINTS.ANALYZE,
+        url: apiUrl,
         method: 'POST',
         mode: 'cors',
         credentials: 'include'
@@ -160,8 +178,31 @@ export async function analyzeImage(data: AnalysisRequest): Promise<AnalysisRespo
 }
 
 /**
- * Submit relevance feedback
+ * Submit relevance feedback directly to the Vision API
  */
 export async function submitRelevanceFeedback(data: RelevanceRequest): Promise<RelevanceResponse> {
-  return post<RelevanceResponse>(API_ENDPOINTS.RELEVANCE, data);
+  // Ensure no double slashes in URL
+  const apiUrl = VISION_API_URL.endsWith('/') 
+    ? `${VISION_API_URL}${ENDPOINTS.RELEVANCE.substring(1)}` 
+    : `${VISION_API_URL}${ENDPOINTS.RELEVANCE}`;
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+      mode: 'cors',
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error in submitRelevanceFeedback:', error);
+    throw error;
+  }
 } 

@@ -13,10 +13,51 @@ export async function POST(request: NextRequest) {
     // Log the API URL being used
     console.log('Using Vision API URL:', VISION_API_URL);
     
+    // Check if we're using an image URL or direct file upload
+    const imageUrl = formData.get('image_url') as string | null;
+    
+    // Create a new FormData to send to the backend API
+    const apiFormData = new FormData();
+    
+    // If we have an image URL, we need to pass it with the correct parameter name
+    // that the backend API expects. Let's check the documentation and use the right name.
+    if (imageUrl) {
+      console.log('Using pre-uploaded image URL:', imageUrl);
+      // Try these common parameter names for image URLs
+      apiFormData.append('image_url', imageUrl);
+      apiFormData.append('imageUrl', imageUrl);
+      apiFormData.append('url', imageUrl);
+      
+      // Still include original image if present, as fallback
+      const image = formData.get('image');
+      if (image) {
+        apiFormData.append('image', image);
+      }
+    } else {
+      // Pass through all form data fields for direct file upload
+      for (const [key, value] of formData.entries()) {
+        apiFormData.append(key, value);
+      }
+    }
+    
+    // Pass through all other fields like user_id and location regardless
+    for (const [key, value] of formData.entries()) {
+      if (key !== 'image' && key !== 'image_url') {
+        apiFormData.append(key, value);
+      }
+    }
+    
+    // Log what we're sending
+    console.log('Sending to backend API:', 
+      imageUrl 
+        ? `Using image URL: ${imageUrl}` 
+        : `Using file upload: ${formData.get('image') ? 'Image file present' : 'No image file'}`
+    );
+    
     // Forward the request to the Vision API
     const response = await fetch(`${VISION_API_URL}/analyze`, {
       method: 'POST',
-      body: formData,
+      body: apiFormData,
     });
     
     // Log response status

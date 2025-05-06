@@ -13,6 +13,7 @@ A Next.js 13 application for exploring and managing city infrastructure issues u
 - [Testing Neo4j Queries](#testing-neo4j-queries)
 - [Project Structure](#project-structure)
 - [Contributing](#contributing)
+- [S3 Integration](#s3-integration)
 
 ## Features
 - Home page with dynamic category cards loaded from Neo4j (fallback to static data).
@@ -109,3 +110,36 @@ This will fetch and log nodes for Users, Analyzers, Categories, Departments, Sol
 
 ## Contributing
 Contributions welcome! Please open issues or submit pull requests for any bugs or enhancements.
+
+## S3 Integration
+
+This application now uploads images to AWS S3 before sending the URL to the vision API for analysis. 
+
+### Required Environment Variables
+
+In your `.env.local` file, add the following variables:
+
+```
+# AWS S3 Configuration
+AWS_ACCESS_KEY_ID=your_access_key_id
+AWS_SECRET_ACCESS_KEY=your_secret_access_key
+AWS_REGION=your_region # e.g., us-east-1
+S3_BUCKET_NAME=your_bucket_name
+```
+
+Make sure your S3 bucket is configured with appropriate CORS settings to allow public read access, and that your AWS IAM user has the necessary permissions to upload objects to the bucket.
+
+### CORS Configuration for S3 Bucket
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD"],
+    "AllowedOrigins": ["*"],
+    "ExposeHeaders": []
+  }
+]
+```
+
+Note: In a production environment, you should restrict the AllowedOrigins to your specific domains.

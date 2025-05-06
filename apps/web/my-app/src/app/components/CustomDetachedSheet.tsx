@@ -8,6 +8,7 @@ import "@/components/examples/DetachedSheet/ExampleDetachedSheet.css";
 import { useVisitorId } from '../hooks/useVisitorId';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { analyzeImage } from '@/lib/services/visionService';
+import { uploadImageToS3 } from '@/lib/services/s3UploadService';
 
 // Helper function to convert data URL to File object
 function dataURLtoFile(dataUrl: string, filename: string): File {
@@ -37,6 +38,9 @@ const CustomDetachedSheet = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [processStep, setProcessStep] = useState<'idle' | 'uploading' | 'analyzing' | 'complete'>('idle');
+  const [s3ImageUrl, setS3ImageUrl] = useState<string | null>(null);
 
   // Detect mobile and iOS
   useEffect(() => {
@@ -320,6 +324,8 @@ const CustomDetachedSheet = () => {
       setIsUploading(true);
       setUploadError(null);
       setErrorDetails(null);
+      setProcessStep('uploading');
+      setUploadProgress("Preparing image...");
       
       // Convert data URL to File object
       const imageFile = dataURLtoFile(imageData, `photo-${Date.now()}.jpg`);
@@ -329,75 +335,94 @@ const CustomDetachedSheet = () => {
       const city = "Cluj-Napoca"; // This should come from geocoding the coordinates
       const country = "Romania";   // This should come from geocoding the coordinates
       
-      // Prepare the request
-      const request = {
-        image: imageFile,
-        user_id: visitorId,
-        location: {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          city: city,
-          country: country
-        }
-      };
+      // Step 1: Upload image to S3
+      setUploadProgress("Uploading to S3...");
+      const s3Result = await uploadImageToS3(imageFile);
       
-      // Log the API URL for debugging
-      console.log("API URL:", `${process.env.NEXT_PUBLIC_VISION_API_URL || 'http://localhost:8000'}/analyze`);
+      if (!s3Result.success || !s3Result.url) {
+        throw new Error(s3Result.error || "Failed to upload image to S3");
+      }
       
+      setS3ImageUrl(s3Result.url);
+      setProcessStep('analyzing');
+      setUploadProgress("Image uploaded to S3. Analyzing...");
+      
+      // Step 2: Send only the image URL to the Vision API
       try {
-        // Send the image for analysis
+        // Prepare the request with only the image URL
+        const request = {
+          imageUrl: s3Result.url,
+          user_id: visitorId,
+          location: {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            city: city,
+            country: country
+          }
+        };
+        
+        // Send the image URL for analysis
+        setUploadProgress("Analyzing image...");
         const response = await analyzeImage(request);
         console.log("Analysis response:", response);
         
-        // Reset state and close sheet
-        setImageData(null);
-        setShowConfirmation(false);
-        setIsUploading(false);
-        setPresented(false); // Close the sheet on success
+        // Set complete state
+        setProcessStep('complete');
         
-        // Show success message
-        alert("Image uploaded successfully!");
-      } catch (networkError) {
-        console.error("API request error:", networkError);
+        // Close the sheet after a short delay to show completion
+        setTimeout(() => {
+          // Reset state and close sheet
+          setImageData(null);
+          setShowConfirmation(false);
+          setIsUploading(false);
+          setS3ImageUrl(null);
+          setUploadProgress(null);
+          setProcessStep('idle');
+          setPresented(false); // Close the sheet on success
+        }, 1500);
+      } catch (apiError: unknown) {
+        console.error("Vision API error:", apiError);
         
-        // Capture detailed error information
-        let errorMessage = "";
-        let detailedInfo = "";
+        // Type guard to check properties safely
+        const isApiError = typeof apiError === 'object' && apiError !== null;
+        const errorObj = apiError as Record<string, unknown>;
         
-        if (networkError instanceof Error) {
-          errorMessage = networkError.message;
-          detailedInfo = `Error name: ${networkError.name}\n`;
-          detailedInfo += `Message: ${networkError.message}\n`;
+        // Handle different API error cases
+        if (isApiError && 
+            (errorObj.cors === true || 
+             (errorObj.type === 'network' && 
+              typeof errorObj.message === 'string' && 
+              (errorObj.message.includes('CORS') || 
+               errorObj.message.includes('cross-origin'))))) {
           
-          // Check if it's a TypeError (often indicates CORS or network issues)
-          if (networkError instanceof TypeError) {
-            detailedInfo += "This appears to be a network error or CORS issue.\n";
-          }
-          
-          // Add stack trace if available
-          if (networkError.stack) {
-            detailedInfo += `Stack: ${networkError.stack}\n`;
-          }
-        } else if (typeof networkError === 'object' && networkError !== null) {
-          try {
-            errorMessage = JSON.stringify(networkError);
-            detailedInfo = `Full error object: ${JSON.stringify(networkError, null, 2)}`;
-          } catch {
-            errorMessage = "Unserializable error object";
-            detailedInfo = "Could not stringify error object";
-          }
+          // Display CORS error with helpful information
+          console.error("CORS error detected when calling the Vision API directly");
+          setUploadError("CORS error: The Vision API doesn't allow direct browser requests.");
+          setErrorDetails(
+            "This is a Cross-Origin Resource Sharing (CORS) issue. The remote API at " +
+            `${process.env.NEXT_PUBLIC_VISION_API_URL || 'https://api.cristeaz.com'} doesn't allow direct ` +
+            "requests from your browser.\n\n" +
+            "Solution options:\n" +
+            "1. Add CORS headers to the Vision API server\n" +
+            "2. Use a proxy API route in Next.js\n" +
+            "3. Use a CORS proxy service\n\n" +
+            `Technical details: ${isApiError && typeof errorObj.message === 'string' ? errorObj.message : 'Unknown error'}`
+          );
+          setIsUploading(false);
+          setProcessStep('idle');
         } else {
-          errorMessage = String(networkError);
-          detailedInfo = "Unknown error format";
+          // Other API error
+          setUploadError(`API error: ${isApiError && typeof errorObj.message === 'string' ? errorObj.message : 'Unknown error'}`);
+          setErrorDetails(JSON.stringify(apiError, null, 2));
+          setIsUploading(false);
+          setProcessStep('idle');
         }
-        
-        setUploadError(`Network error: ${errorMessage}`);
-        setErrorDetails(detailedInfo);
-        setIsUploading(false);
       }
     } catch (error) {
       console.error("Error preparing image upload:", error);
       setIsUploading(false);
+      setUploadProgress(null);
+      setProcessStep('idle');
       setUploadError("Error preparing image: " + (error instanceof Error ? error.message : String(error)));
     }
   };
@@ -560,26 +585,122 @@ const CustomDetachedSheet = () => {
                       </div>
                     )}
                     
+                    {/* Show upload progress with improved visuals */}
+                    {isUploading && (
+                      <div className="w-full mb-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center">
+                            <p className="text-sm font-medium">{uploadProgress}</p>
+                            {processStep === 'complete' && (
+                              <span className="ml-2 text-green-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center">
+                            {processStep === 'uploading' && (
+                              <span className="text-xs font-medium text-blue-500 animate-pulse">Uploading...</span>
+                            )}
+                            {processStep === 'analyzing' && (
+                              <span className="text-xs font-medium text-blue-500 animate-pulse">Analyzing...</span>
+                            )}
+                            {processStep === 'complete' && (
+                              <span className="text-xs font-medium text-green-500">Complete!</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Progress bar with steps */}
+                        <div className="relative pt-1">
+                          <div className="flex mb-2 items-center justify-between">
+                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                              <div 
+                                className={`h-2.5 rounded-full transition-all duration-500 ease-in-out ${
+                                  processStep === 'complete' 
+                                    ? 'bg-green-500' 
+                                    : processStep === 'analyzing' 
+                                      ? 'bg-blue-500' 
+                                      : 'bg-blue-400'
+                                }`} 
+                                style={{ 
+                                  width: processStep === 'complete' 
+                                    ? '100%' 
+                                    : processStep === 'analyzing' 
+                                      ? '70%' 
+                                      : '40%' 
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                          
+                          {/* Step indicators */}
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <div className={`flex flex-col items-center ${processStep !== 'idle' ? 'text-blue-500 font-medium' : ''}`}>
+                              <div className={`w-3 h-3 rounded-full mb-1 ${processStep !== 'idle' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                              <span>Upload</span>
+                            </div>
+                            <div className={`flex flex-col items-center ${processStep === 'analyzing' || processStep === 'complete' ? 'text-blue-500 font-medium' : ''}`}>
+                              <div className={`w-3 h-3 rounded-full mb-1 ${processStep === 'analyzing' || processStep === 'complete' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                              <span>Analyze</span>
+                            </div>
+                            <div className={`flex flex-col items-center ${processStep === 'complete' ? 'text-green-500 font-medium' : ''}`}>
+                              <div className={`w-3 h-3 rounded-full mb-1 ${processStep === 'complete' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                              <span>Complete</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {s3ImageUrl && (
+                          <div className="mt-3 text-xs text-gray-500 bg-gray-50 p-2 rounded border border-gray-200">
+                            <p className="font-medium mb-1">Image URL:</p>
+                            <p className="truncate">{s3ImageUrl}</p>
+                          </div>
+                        )}
+                        
+                        {/* Show loading animation during analysis */}
+                        {processStep === 'analyzing' && (
+                          <div className="flex items-center justify-center mt-4">
+                            <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
+                          </div>
+                        )}
+                        
+                        {/* Show success animation when complete */}
+                        {processStep === 'complete' && (
+                          <div className="flex flex-col items-center justify-center mt-4">
+                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-500 mb-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <p className="text-green-500 font-medium">Analysis complete!</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between w-full">
                       <button
                         onClick={() => {
                           setShowConfirmation(false);
                           setImageData(null);
                         }}
-                        className="bg-gray-300 text-gray-800 px-6 py-2 rounded-lg"
+                        className="bg-gray-300 text-gray-800 px-6 py-2 rounded-lg transition-colors hover:bg-gray-400"
+                        disabled={isUploading}
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleSendImage}
                         disabled={isUploading}
-                        className={`px-6 py-2 rounded-lg ${
+                        className={`px-6 py-2 rounded-lg transition-colors ${
                           isUploading 
                             ? 'bg-gray-400 text-gray-800 cursor-not-allowed' 
                             : 'bg-blue-500 text-white hover:bg-blue-600'
                         }`}
                       >
-                        {isUploading ? 'Uploading...' : 'Send Image'}
+                        {isUploading ? 'Processing...' : 'Send Image'}
                       </button>
                     </div>
                   </div>
