@@ -12,6 +12,7 @@ import { fetchDetectionEventById, fetchPhotoByEventId } from "@/lib/neo4j-querie
 import { DetectionEvent } from "@/lib/neo4j-schema";
 import { format } from "date-fns";
 import Image from "next/image";
+import CommentSheet from "@/components/sheets/CommentSheet";
 
 interface PhotoData {
   photo_id?: string;
@@ -64,6 +65,8 @@ const Issue = () => {
     const [loading, setLoading] = useState(true);
     const [eventData, setEventData] = useState<DetectionEvent | null>(null);
     const [photoData, setPhotoData] = useState<PhotoData | null>(null);
+    const [commentSheetOpen, setCommentSheetOpen] = useState(false);
+    const [newCommentText, setNewCommentText] = useState("");
     const [issueData, setIssueData] = useState<IssueData>({
       name: "Loading...",
       description: "",
@@ -173,6 +176,32 @@ const Issue = () => {
     // Use provided comments or sample comments
     const comments = issueData.comments?.length > 0 ? issueData.comments : sampleComments;
   
+    // Handle comment submission
+    const handleCommentSubmit = () => {
+      if (!newCommentText.trim()) return;
+      
+      const newComment = {
+        user: "You",
+        date: "Just now",
+        text: newCommentText
+      };
+      
+      // Add the new comment to the list
+      setIssueData(prev => ({
+        ...prev,
+        comments: [...(prev.comments?.length ? prev.comments : []), newComment]
+      }));
+      
+      // Clear the input and close the sheet
+      setNewCommentText("");
+      setCommentSheetOpen(false);
+    };
+
+    // Handle comment text change
+    const handleCommentTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setNewCommentText(e.target.value);
+    };
+
     return (
       <div className="relative h-full overflow-auto bg-white">
             {loading ? (
@@ -385,16 +414,25 @@ const Issue = () => {
                     
                     {/* Add comment button */}
                     <Button 
-                      className="w-full gap-2 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 h-12 text-sm"
-                      variant="ghost"
+                      className="w-full bg-[#97b9ff] text-white py-3 text-base font-semibold rounded-[1.875rem] border-none cursor-pointer flex items-center justify-center gap-2 hover:bg-[#7da7f8]"
+                      onClick={() => setCommentSheetOpen(true)}
                     >
-                      <MessageSquare className="h-4 w-4" />
+                      <MessageSquare size={18} />
                       Add Comment
                     </Button>
                   </div>
                 </div>
               </>
             )}
+
+            {/* Comment Sheet Component */}
+            <CommentSheet 
+              open={commentSheetOpen}
+              onOpenChange={setCommentSheetOpen}
+              commentText={newCommentText}
+              onCommentTextChange={handleCommentTextChange}
+              onSubmit={handleCommentSubmit}
+            />
         </div>
     );
   };

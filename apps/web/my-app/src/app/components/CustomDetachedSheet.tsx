@@ -367,7 +367,7 @@ const CustomDetachedSheet = () => {
         className={`fixed bottom-8 right-8 w-14 h-14  rounded-full shadow-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300 ease-in-out z-50 ${
           presented 
             ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300 text-white' 
-            : 'bg-[#191919] hover:bg-blue-600 focus:ring-blue-300 text-[#b2ff01]'
+            : 'bg-[#97b9ff] hover:bg-blue-300 focus:ring-blue-300 text-white'
         }`}
         aria-label={presented ? "Close" : "Add"}
       >

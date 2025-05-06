@@ -7,6 +7,78 @@ import { fetchUserPhotos } from "@/lib/neo4j-queries";
 import { useVisitorId } from "@/app/hooks/useVisitorId";
 import Image from "next/image";
 
+// Custom hook to handle location status with proper browser detection and error handling
+function useLocationStatus() {
+    const [status, setStatus] = useState<'checking' | 'enabled' | 'disabled'>('checking');
+    const [checkInProgress, setCheckInProgress] = useState(false);
+
+    // Function to check geolocation permission
+    const checkPermission = () => {
+        if (checkInProgress || typeof window === 'undefined') return;
+        setCheckInProgress(true);
+        setStatus('checking');
+        console.log("Checking geolocation permission...");
+
+        // Safety timeout to prevent UI from hanging on unresolved permission requests
+        const timeoutId = setTimeout(() => {
+            console.log("Geolocation check timed out");
+            setStatus('disabled');
+            setCheckInProgress(false);
+        }, 10000);
+
+        try {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        console.log("Geolocation permission granted:", position.coords);
+                        setStatus('enabled');
+                        setCheckInProgress(false);
+                        clearTimeout(timeoutId);
+                    },
+                    (error) => {
+                        console.log("Geolocation error:", error.code, error.message);
+                        setStatus('disabled');
+                        setCheckInProgress(false);
+                        clearTimeout(timeoutId);
+                    },
+                    { 
+                        enableHighAccuracy: false,
+                        timeout: 5000,
+                        maximumAge: 600000 // 10 minutes
+                    }
+                );
+            } else {
+                console.log("Geolocation not supported by browser");
+                setStatus('disabled');
+                setCheckInProgress(false);
+                clearTimeout(timeoutId);
+            }
+        } catch (error) {
+            console.error("Error checking geolocation permission:", error);
+            setStatus('disabled');
+            setCheckInProgress(false);
+            clearTimeout(timeoutId);
+        }
+    };
+
+    // Check permission on mount - but only on client side
+    useEffect(() => {
+        checkPermission();
+        
+        // Cleanup function
+        return () => {
+            setCheckInProgress(false);
+        };
+    }, []);
+
+    return {
+        isEnabled: status === 'enabled',
+        isDisabled: status === 'disabled',
+        isChecking: status === 'checking',
+        checkPermission
+    };
+}
+
 interface UserPhoto {
     photo_id: string;
     url?: string;
@@ -19,10 +91,12 @@ interface UserPhoto {
 const Account = () => {
     const router = useRouter();
     const visitorId = useVisitorId();
-    const [isLocationEnabled, setIsLocationEnabled] = useState(false);
     const [isVerified, setIsVerified] = useState(false);
     const [userPhotos, setUserPhotos] = useState<UserPhoto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    
+    // Use our custom location hook instead of managing location state directly
+    const location = useLocationStatus();
 
     // Fetch user photos when visitor ID is available
     useEffect(() => {
@@ -48,17 +122,6 @@ const Account = () => {
 
     const handleVerify = () => {
         setIsVerified(true);
-    };
-
-    const handleEnableLocation = () => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                () => setIsLocationEnabled(true),
-                () => alert("Please enable location services in your browser settings.")
-            );
-        } else {
-            alert("Geolocation is not supported by this browser.");
-        }
     };
 
     const handlePhotoClick = (photo: UserPhoto) => {
@@ -93,7 +156,7 @@ const Account = () => {
                 
                 {!isVerified ? (
                     <button 
-                        className="w-4/6 bg-[#075CDD] text-white py-3 text-base font-semibold rounded-2xl border-none cursor-pointer flex items-center justify-center gap-2"
+                        className="w-4/6 bg-[#97b9ff] text-white py-3 text-base font-semibold rounded-2xl border-none cursor-pointer flex items-center justify-center gap-2"
                         onClick={handleVerify}
                     >
                         <CheckCircle size={18} />
@@ -121,18 +184,42 @@ const Account = () => {
                 
                 <div className="flex justify-between items-center mb-4">
                     <span className="font-medium">Status</span>
-                    <span className={`inline-block rounded-[1.875rem] py-2 px-4 text-[0.9375rem] font-medium ${isLocationEnabled ? 'bg-[#E6F0FF] text-[#075CDD]' : 'bg-[#F7F7F7] text-[#787575]'} my-2`}>
-                        {isLocationEnabled ? "Enabled" : "Disabled"}
+                    <span className={`inline-block rounded-[1.875rem] py-2 px-4 text-[0.9375rem] font-medium ${
+                        location.isEnabled 
+                            ? 'bg-[#E6F0FF] text-[#075CDD]' 
+                            : location.isChecking 
+                                ? 'bg-[#FFF8E6] text-[#805E00]'
+                                : 'bg-[#F7F7F7] text-[#787575]'
+                    } my-2`}>
+                        {location.isEnabled 
+                            ? "Enabled" 
+                            : location.isChecking 
+                                ? "Checking..." 
+                                : "Disabled"}
                     </span>
                 </div>
                 
-                {!isLocationEnabled && (
+                {/* Debug info - only visible in development environment */}
+                {process.env.NODE_ENV === 'development' && (
+                    <div className="text-xs p-2 bg-gray-100 rounded mb-4 font-mono">
+                        <div>isEnabled: {location.isEnabled ? 'true' : 'false'}</div>
+                        <div>isChecking: {location.isChecking ? 'true' : 'false'}</div>
+                        <BrowserInfo />
+                    </div>
+                )}
+                
+                {!location.isEnabled && (
                     <button 
-                        className="w-full bg-[#075CDD] text-white py-3 text-base font-semibold rounded-2xl border-none cursor-pointer flex items-center justify-center gap-2"
-                        onClick={handleEnableLocation} 
+                        className={`w-full py-3 text-base font-semibold rounded-2xl border-none cursor-pointer flex items-center justify-center gap-2 ${
+                            location.isChecking
+                                ? 'bg-gray-400 text-gray-100' 
+                                : 'bg-[#97b9ff] text-white hover:bg-[#7da7f8]'
+                        }`}
+                        onClick={location.checkPermission} 
+                        disabled={location.isChecking}
                     >
                         <MapPin size={18} />
-                        Enable Location
+                        {location.isChecking ? 'Checking Location...' : 'Enable Location'}
                     </button>
                 )}
             </div>
@@ -200,7 +287,7 @@ const Account = () => {
                         <p>No reported issues yet</p>
                         
                         <button 
-                            className="w-full bg-[#075CDD] text-white py-3 text-base font-semibold rounded-2xl border-none cursor-pointer flex items-center justify-center gap-2 mt-4"
+                            className="w-full bg-[#97b9ff] text-white py-3 text-base font-semibold rounded-2xl border-none cursor-pointer flex items-center justify-center gap-2 mt-4"
                             onClick={() => router.push('/report')}
                         >
                             Report an Issue
@@ -211,6 +298,20 @@ const Account = () => {
         </div>
     );
 };
+
+// Client-only component to show browser info (avoids hydration mismatch)
+function BrowserInfo() {
+  const [browserInfo, setBrowserInfo] = useState('Loading...');
+  
+  useEffect(() => {
+    // Only run in browser environment
+    if (typeof window !== 'undefined') {
+      setBrowserInfo(navigator.userAgent);
+    }
+  }, []);
+  
+  return <div>Browser: {browserInfo}</div>;
+}
 
 //make this component available to the app
 export default Account;
