@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useState, useEffect, useRef } from "react";
-import { useRouter, usePathname } from 'next/navigation';
-import { Sheet } from "@silk-hq/components";
+import { usePathname } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageSquare, Calendar, MapPin, AlertTriangle, X } from "lucide-react";
+import { MessageSquare, Calendar, MapPin, AlertTriangle } from "lucide-react";
 import { fetchDetectionEventById, fetchPhotoByEventId } from "@/lib/neo4j-queries";
 import { DetectionEvent } from "@/lib/neo4j-schema";
 import { format } from "date-fns";
@@ -59,7 +58,6 @@ const sampleComments = [
 ];
 
 const Issue = () => {
-    const router = useRouter();
     const pathname = usePathname();
     const mountedRef = useRef(false);
     const [loading, setLoading] = useState(true);
@@ -282,15 +280,6 @@ const Issue = () => {
                   {/* Sticky title bar with close button */}
                   <div className="sticky top-0 z-[51] flex items-center justify-between py-6 bg-white/90 backdrop-blur-sm">
                     <h2 className="text-2xl font-bold tracking-tight text-gray-900">{issueData.name}</h2>
-                    <Sheet.Trigger 
-                      action="dismiss"
-                      onClick={() => {
-                        router.replace(`/categories/flooding`);
-                      }}
-                      className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                    >
-                      <X className="h-4 w-4 text-gray-700" />
-                    </Sheet.Trigger>
                   </div>
                 
                   {/* Description */}

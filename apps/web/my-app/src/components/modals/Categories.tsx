@@ -10,6 +10,7 @@ import { Category } from "@/lib/neo4j-schema";
 import { SheetWithDetent } from "@/components/examples/SheetWithDetent/SheetWithDetent";
 import "@/components/examples/SheetWithDetent/ExampleSheetWithDetent.css";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
 
 // Interface for category with issue count
 interface CategoryWithCount extends Category {
@@ -23,6 +24,7 @@ const CategoriesSheetWrapper = () => {
   const [categories, setCategories] = useState<CategoryWithCount[]>([]);
   const [searchText, setSearchText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   // Fetch categories and their issue counts from the graph database
   useEffect(() => {
@@ -127,9 +129,15 @@ const CategoriesSheetWrapper = () => {
                   </div>
                 ) : (
                   filteredCategories.map((category) => (
-                    <div
+                    <Sheet.Trigger
                       key={category.category_id}
-                      className="ExampleSheetWithDetent-contactContainer flex items-center"
+                      action="dismiss"
+                      onClick={() => {
+                        router.push(`/categories/${category.category_id}`);
+                      }}
+                    >
+                    <div
+                      className="ExampleSheetWithDetent-contactContainer flex items-center cursor-pointer hover:bg-gray-50"
                     >
                       <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center font-medium text-blue-800 mr-3">
                         {typeof category.issueCount === 'number' ? category.issueCount : '0'}
@@ -140,6 +148,7 @@ const CategoriesSheetWrapper = () => {
                         </div>
                       </div>
                     </div>
+                    </Sheet.Trigger>
                   ))
                 )}
               </Scroll.Content>

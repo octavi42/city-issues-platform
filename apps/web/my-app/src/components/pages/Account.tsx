@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, CheckCircle, AlertCircle, Bell, Camera } from "lucide-react";
 import { fetchUserPhotos } from "@/lib/neo4j-queries";
@@ -13,7 +13,7 @@ function useLocationStatus() {
     const [checkInProgress, setCheckInProgress] = useState(false);
 
     // Function to check geolocation permission
-    const checkPermission = () => {
+    const checkPermission = useCallback(() => {
         if (checkInProgress || typeof window === 'undefined') return;
         setCheckInProgress(true);
         setStatus('checking');
@@ -59,7 +59,7 @@ function useLocationStatus() {
             setCheckInProgress(false);
             clearTimeout(timeoutId);
         }
-    };
+    }, [checkInProgress]);
 
     // Check permission on mount - but only on client side
     useEffect(() => {
@@ -69,7 +69,7 @@ function useLocationStatus() {
         return () => {
             setCheckInProgress(false);
         };
-    }, []);
+    }, [checkPermission]);
 
     return {
         isEnabled: status === 'enabled',

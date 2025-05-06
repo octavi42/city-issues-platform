@@ -4,10 +4,11 @@ import { useParams } from 'next/navigation';
 import NextImage from 'next/image';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet } from "@silk-hq/components";
+import CommentSheet from "@/components/sheets/CommentSheet";
 
 import { fetchPhotoByEventId } from '@/lib/neo4j-queries';
 import { runQuery } from '@/lib/neo4j';
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
 
 interface PhotoData {
     photo_id: string;
@@ -24,6 +25,10 @@ const Image = () => {
     const [likeCount, setLikeCount] = useState(0);
     const [dislikeCount, setDislikeCount] = useState(0);
     const [userInteraction, setUserInteraction] = useState<'like' | 'dislike' | null>(null);
+    
+    // Comment-related state
+    const [commentSheetOpen, setCommentSheetOpen] = useState(false);
+    const [newCommentText, setNewCommentText] = useState('');
     
     // Get the ID from the URL params
     const urlId = typeof params.slug === 'string' ? params.slug : '';
@@ -103,9 +108,19 @@ const Image = () => {
         }
     };
 
-    return (
+    const handleCommentTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setNewCommentText(e.target.value);
+    };
+    
+    const handleCommentSubmit = () => {
+        // Here you would typically send the comment to your backend
+        console.log('Comment submitted:', newCommentText);
+        // Clear the comment text after submission
+        setNewCommentText('');
+    };
 
-                    <div className="relative h-full overflow-auto">
+    return (
+                    <div className="h-full w-full overflow-hidden">
                     <Sheet.Trigger
                       className="p-4 rounded-full text-white"
                       action="dismiss"
@@ -124,6 +139,15 @@ const Image = () => {
                     >
                       ✕
                     </Sheet.Trigger>
+                    
+                    {/* Comment button - added to top left */}
+                    <div
+                      onClick={() => setCommentSheetOpen(true)}
+                      className="fixed top-[50px] w-[70px] h-[70px] left-[20px] z-[10000] flex items-center justify-center p-3 rounded-full bg-transparent text-white"
+                    >
+                      <MessageSquare size={24} />
+                    </div>
+                    
                     <div className="w-full h-full flex flex-col">
                       <div className="flex-grow relative">
                         {loading ? (
@@ -162,6 +186,15 @@ const Image = () => {
                         </button>
                       </div>
                     </div>
+                    
+                    {/* Comment Sheet */}
+                    <CommentSheet
+                      open={commentSheetOpen}
+                      onOpenChange={setCommentSheetOpen}
+                      commentText={newCommentText}
+                      onCommentTextChange={handleCommentTextChange}
+                      onSubmit={handleCommentSubmit}
+                    />
                     </div>
     );
 };

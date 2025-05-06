@@ -33,7 +33,8 @@ export default function ImageSheetWrapper() {
     <Sheet.Root
         license="non-commercial" 
         presented={presented}
-        onPresentedChange={handlePresentedChange}>
+        onPresentedChange={handlePresentedChange}
+        style={{ position: 'fixed', height: '100%', width: '100%', pointerEvents: presented ? 'auto' : 'none' }}>
             <Sheet.Portal>
             <Sheet.View
                className="Card-view"
