@@ -30,7 +30,9 @@ app = FastAPI(
 # Configure CORS to allow calls from frontend
 origins = [
     "http://localhost:3001",
-    "https://localhost:3001"
+    "https://localhost:3001",
+    # Allow requests from the deployed frontend (e.g., Vercel)
+    "https://city-issues-platform.vercel.app"
 ]
 app.add_middleware(
     CORSMiddleware,
