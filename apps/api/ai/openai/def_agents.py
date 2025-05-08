@@ -30,7 +30,7 @@ _SCHEMA_DIR = Path(__file__).parents[1] / "schemas"
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from db.crud.read_nodes import read_nodes
-from db.crud.create_nodes import add_city, add_user, add_photo, add_issue, add_maintenance, add_category
+from db.crud.create_nodes import add_city, add_user, add_photo, add_issue, add_maintenance, add_category, add_node
 from db.crud.create_edges import add_relationship
 from db.crud.read_nodes import search_node
 
@@ -314,6 +314,53 @@ log_wm_tool = FunctionTool(
     on_invoke_tool=run_mai_function,
     strict_json_schema=False,  # Allow flexibility with the schema
 )
+ 
+# Function tool for irrelevant images
+async def run_irrelevant_function(ctx: RunContextWrapper, args):
+    """
+    Handle 'irrelevant_image' tool: acknowledge image irrelevance.
+    Returns the provided reason and confidence.
+    """
+    # Parse arguments
+    if isinstance(args, str):
+        try:
+            params = json.loads(args)
+        except Exception:
+            params = {}
+    else:
+        params = args or {}
+    # Extract parameters
+    photo_id = params.get("photo_id")
+    reason = params.get("reason")
+    confidence = params.get("confidence")
+    # Create an Irrelevant node
+    try:
+        irrelevant_id = uuid.uuid4().hex
+        props = {
+            "irrelevant_id": irrelevant_id,
+            "reason": reason,
+            "confidence": confidence
+        }
+        irrelevant_node = add_node("Irrelevant", "irrelevant_id", props)
+        # Link Photo to Irrelevant node
+        add_relationship(
+            "Photo", "photo_id", photo_id,
+            "MARKED_IRRELEVANT",
+            "Irrelevant", "irrelevant_id", irrelevant_id
+        )
+    except Exception:
+        # Ignore DB errors
+        pass
+    # Return structured response
+    return {"irrelevant_id": irrelevant_id, "photo_id": photo_id, "reason": reason, "confidence": confidence}
+
+irrelevant_tool = FunctionTool(
+    name="irrelevant_image",
+    description="Indicate the image does not contain any relevant city issue or well-maintained element.",
+    params_json_schema=_load("irrelevant.json"),
+    on_invoke_tool=run_irrelevant_function,
+    strict_json_schema=False,
+)
 
 
 # Define the City-Vision-Inspector agent
@@ -336,14 +383,14 @@ city_inspector = Agent(
         "   - If it doesn't fit existing categories, provide a new suggested one-word category name in the 'suggested_category' field\n"
         "   - Include all details in a single comprehensive description\n"
         "   - Always provide a detailed explanation in the 'category_description' field\n"
-        "3. If the image is not relevant to civic infrastructure, respond with plain text explaining that the image doesn't contain relevant content\n\n"
+        "3. If the image is not relevant to civic infrastructure, call the `irrelevant_image` function EXACTLY ONCE, providing 'reason' and 'confidence' fields.\n\n"
         "IMPORTANT: Make ONLY ONE function call per image, even if you see multiple issues. Focus on the most significant or prominent issue.\n\n"
         "For all categories, use general, reusable terms (like 'pothole', 'graffiti', 'bench', 'pedestrian_crossing'). "
         "Note: existing categories will be provided in the function schema, but the category field is optional."
     ),
     model="gpt-4.1-mini",
     model_settings=ModelSettings(temperature=0.2),
-    tools=[report_issue_tool, log_wm_tool],
+    tools=[report_issue_tool, log_wm_tool, irrelevant_tool],
 )
    
 # Relevance scoring tool for image-context match

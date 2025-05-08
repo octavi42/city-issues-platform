@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IrrelevantImage",
+  "description": "Function to indicate the image does not contain an issue or well-maintained element.",
+  "type": "object",
+  "properties": {
+    "photo_id": {
+      "type": "string",
+      "description": "ID of the photo node that was analyzed"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Explanation why the image is considered irrelevant"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Model’s confidence score (0.0 to 1.0) that the image is irrelevant"
+    }
+  },
+  "required": ["photo_id", "reason", "confidence"],
+  "additionalProperties": false
+}

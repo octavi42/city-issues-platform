@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """FastAPI server for City-Vision-Inspector."""
-from fastapi import FastAPI, Form, HTTPException
+from fastapi import FastAPI, Form, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 import os
 # Prepare context and invoke vision agent
@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from agents import Runner
 from ai.openai.def_agents import relevance_scorer
 from db.crud.read_nodes import search_node
+from db.crud.update_nodes import update_photo_relevance_score, delete_photo_and_event, export_high_score
 from db.neo4j import get_session
 
 app = FastAPI(
@@ -26,14 +27,18 @@ app = FastAPI(
 )
 # Configure CORS to allow calls from frontend
 origins = [
+    # Local development origins
+    "http://localhost:3000",
+    "https://localhost:3000",
     "http://localhost:3001",
     "https://localhost:3001",
     # Allow requests from the deployed frontend (e.g., Vercel)
-    "https://city-issues-platform.vercel.app"
+    "https://city-issues-platform.vercel.app",
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    # allow_origins=origins,
+    allow_origins=["*"],        # Allow all origins
     allow_credentials=True,  # This is already set correctly
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,8 +50,9 @@ async def analyze(
     image_url: str = Form(...),
     user_id: str = Form(...),
     location: str = Form(...),
+    background_tasks: BackgroundTasks = None,
 ):
-    """Basic analyze endpoint accepting an image URL, user ID, and location info."""
+    """Basic analyze endpoint accepting an image URL, user ID, and location info. Returns immediately and processes in background."""
     print(f"Received image URL: {image_url}")
     print(f"User ID: {user_id}")
     # Parse and validate location JSON
@@ -75,15 +81,19 @@ async def analyze(
         "city": city,
         "country": country,
     }
-    try:
-        # Offload the blocking agent call to a thread to avoid event-loop conflicts
-        print(f"Running city inspector agent on image URL: {image_url}")
-        print(f"User: {user}")
-        print(f"Location: {location_dict}")
-        result = await asyncio.to_thread(_run_agent_sync, image_url, user, location_dict)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis error: {e}")
-    return result
+
+    def run_agent_background(image_url, user, location_dict):
+        try:
+            print(f"[Background] Running city inspector agent on image URL: {image_url}")
+            print(f"[Background] User: {user}")
+            print(f"[Background] Location: {location_dict}")
+            _run_agent_sync(image_url, user, location_dict)
+        except Exception as e:
+            print(f"[Background] Analysis error: {e}")
+
+    # Schedule the background task
+    background_tasks.add_task(run_agent_background, image_url, user, location_dict)
+    return {"success": True, "message": "Image sent for processing"}
 
 # To run the server:
 # pip install fastapi uvicorn python-multipart
@@ -155,4 +165,24 @@ def adjust_relevance(request: RelevanceRequest):
             delta = 0
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Relevance agent error: {e}")
-    return {"delta_score": delta}
+    # Calculate the new relevance score
+    new_score = current_score + delta
+    # If score falls below 0, delete photo and linked event
+    if new_score < 0:
+        try:
+            delete_photo_and_event(request.photo_id)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error deleting photo and event: {e}")
+        return {"delta_score": delta, "deleted": True}
+    # Otherwise, update the photo's relevance_score
+    try:
+        update_photo_relevance_score(request.photo_id, new_score)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating relevance score: {e}")
+    # If the score exceeds 100, export image and event data to JSONL
+    if new_score > 100:
+        try:
+            export_high_score(request.photo_id)
+        except Exception:
+            pass
+    return {"delta_score": delta, "relevance_score": new_score}

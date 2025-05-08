@@ -12,6 +12,7 @@ from db.crud.create_edges import (
     add_operates_in, add_has_solution, add_proposed_by
 )
 from db.crud.read_nodes import read_nodes
+from db.crud.update_nodes import update_photo_relevance_score, delete_photo_and_event, export_high_score
 
 __all__ = [
     "get_session",
@@ -20,5 +21,8 @@ __all__ = [
     "add_relationship", "add_uploaded_photo", "add_captured_in", "add_analyzed",
     "add_triggers_event", "add_in_category", "add_handled_by",
     "add_operates_in", "add_has_solution", "add_proposed_by",
-    "read_nodes"
+    "read_nodes",
+    "update_photo_relevance_score",
+    "delete_photo_and_event",
+    "export_high_score",
 ]

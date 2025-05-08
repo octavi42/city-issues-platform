@@ -66,6 +66,18 @@ def maintained() -> dict:
         ),
         "parameters": params,
     }
+  
+def irrelevant() -> dict:
+    """
+    Return function-calling spec for images irrelevant to city issues or well-maintained elements.
+    """
+    schema_path = _SCHEMA_DIR / "irrelevant.json"
+    schema = json.loads(schema_path.read_text())
+    return {
+        "name": "irrelevant_image",
+        "description": schema.get("description", "Indicate the image is irrelevant to the domain."),
+        "parameters": schema,
+    }
 
 
 
