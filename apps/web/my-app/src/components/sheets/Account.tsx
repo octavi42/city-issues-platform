@@ -55,7 +55,7 @@ export default function AccountSheetWrapper() {
             className={`SheetWithStacking-content contentPlacement-${contentPlacement}`}
             >
             <div className="SheetWithStacking-innerContent">
-                <Account />
+                <Account isIntercepted={true} />
             </div>
             </Sheet.Content>
         </Sheet.View>

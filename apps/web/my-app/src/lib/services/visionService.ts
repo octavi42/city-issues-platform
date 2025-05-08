@@ -3,7 +3,7 @@
  */
 
 // Base URL for Vision API - can be overridden with env var
-const VISION_API_URL = process.env.NEXT_PUBLIC_VISION_API_URL || 'https://api.cristeaz.com';
+const VISION_API_URL = process.env.NEXT_PUBLIC_VISION_API_URL || 'http://0.0.0.0:8000';
 
 // API endpoints
 const ENDPOINTS = {

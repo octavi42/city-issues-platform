@@ -425,14 +425,14 @@ const Category = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
     };
 
     return (
-        <div className="h-full w-full bg-white text-black font-['Schibsted_Grotesk',Arial,sans-serif] p-6 pb-20">
+        <div className="h-full w-full bg-white text-black font-['Schibsted_Grotesk',Arial,sans-serif] p-6 pb-20 overflow-hidden">
             <div className="max-w-[28rem] mx-auto h-full overflow-y-auto">
                 <div className="w-full h-10"></div>
 
                 <div className="flex items-center mb-4 w-full gap-2">
                     <SheetOrBackButton
                         isIntercepted={isIntercepted}
-                        className="rounded-full p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="rounded-full p-2 focus:none"
                         icon={<ArrowLeft className="w-5 h-5" />}
                     />
                     {isLoading ? (
@@ -481,11 +481,9 @@ const Category = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
                         </div>
                     )}
                 </div>
-
-                <div className="w-full h-4"></div>
                 
                 {/* Severity Container */}
-                <div className="bg-[#F7F7F7] rounded-[1.875rem] p-4 px-6 flex justify-between items-center mb-6 w-full">
+                {/* <div className="bg-[#F7F7F7] rounded-[1.875rem] p-4 px-6 flex justify-between items-center mb-6 w-full">
                     {isLoading ? (
                         <Skeleton className="h-8 w-full bg-gray-200" />
                     ) : (
@@ -505,9 +503,7 @@ const Category = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
                             </div>
                         </>
                     )}
-                </div>
-
-                <div className="w-full h-4"></div>
+                </div> */}
 
                 {/* Images Grid with skeleton loading state */}
                 {isLoading ? renderSkeletonGrid() : renderImageGrid()}

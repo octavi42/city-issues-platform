@@ -241,14 +241,17 @@ export async function fetchUserPhotos(userId: string): Promise<Array<{
   url?: string;
   title?: string;
   status: string;
-  type: 'issue' | 'maintenance' | 'in_progress';
+  type: 'issue' | 'maintenance' | 'in_progress' | 'irrelevant';
   related_node_id?: string;
+  irrelevant_reason?: string;
+  irrelevant_confidence?: number;
 }>> {
   const cypher = `
     MATCH (u:User)-[:UPLOADED_PHOTO]->(p:Photo)
     WHERE u.user_id = $userId
     OPTIONAL MATCH (p)-[:TRIGGERS_EVENT]->(i:Issue)
     OPTIONAL MATCH (p)-[:CONTAINS]->(m:Maintenance)
+    OPTIONAL MATCH (p)-[:MARKED_IRRELEVANT]->(irr:Irrelevant)
     RETURN 
       properties(p) AS photo,
       CASE 
@@ -258,43 +261,47 @@ export async function fetchUserPhotos(userId: string): Promise<Array<{
       CASE 
         WHEN m IS NOT NULL THEN properties(m)
         ELSE NULL
-      END AS maintenance
+      END AS maintenance,
+      CASE
+        WHEN irr IS NOT NULL THEN properties(irr)
+        ELSE NULL
+      END AS irrelevant
   `;
   
   const results = await runQuery<{
     photo: Photo;
     issue: DetectionEvent | null;
     maintenance: MaintenanceNode | null;
+    irrelevant: { reason?: string; confidence?: number } | null;
   }>(cypher, { userId });
   
-  console.log("Neo4j query results:", JSON.stringify(results, null, 2));
-  
   return results.map(record => {
-    const { photo, issue, maintenance } = record;
+    const { photo, issue, maintenance, irrelevant } = record;
     
-    // Ensure photo has URL property
     if (!photo.url && photo.image_url && typeof photo.image_url === 'string') {
       photo.url = photo.image_url;
     }
     
-    // Create appropriate title if missing
     const title = (photo.title || (issue?.name || 'Reported Item')) as string;
     
-    // Determine status and type
     let status = "In Progress";
-    let type: 'issue' | 'maintenance' | 'in_progress' = 'in_progress';
+    let type: 'issue' | 'maintenance' | 'in_progress' | 'irrelevant' = 'in_progress';
     let related_node_id: string | undefined = undefined;
+    let irrelevant_reason: string | undefined = undefined;
+    let irrelevant_confidence: number | undefined = undefined;
     
-    if (issue) {
+    if (irrelevant) {
+      status = "Irrelevant";
+      type = 'irrelevant';
+      irrelevant_reason = irrelevant.reason;
+      irrelevant_confidence = irrelevant.confidence;
+    } else if (issue) {
       status = issue.status || "Open";
       type = 'issue';
       related_node_id = issue.event_id;
     } else if (maintenance) {
       status = "Maintained";
       type = 'maintenance';
-      
-      // Try to find an ID property in the maintenance object
-      // Check common ID field patterns
       related_node_id = maintenance.maintenance_id || 
                          maintenance.item_id || 
                          maintenance.id || 
@@ -303,9 +310,6 @@ export async function fetchUserPhotos(userId: string): Promise<Array<{
                             maintenance[Object.keys(maintenance).find(key => key.endsWith('_id')) as string] as string : 
                             undefined 
                          : undefined);
-      
-      console.log("Maintenance object:", maintenance);
-      console.log("Extracted related_node_id:", related_node_id);
     }
     
     return {
@@ -314,7 +318,9 @@ export async function fetchUserPhotos(userId: string): Promise<Array<{
       title,
       status,
       type,
-      related_node_id
+      related_node_id,
+      irrelevant_reason,
+      irrelevant_confidence
     };
   });
 }

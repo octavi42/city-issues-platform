@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, CheckCircle, AlertCircle, Bell, Camera } from "lucide-react";
+import { MapPin, CheckCircle, AlertCircle, Camera, RefreshCcw } from "lucide-react";
 import { fetchUserPhotos } from "@/lib/neo4j-queries";
 import { useVisitorId } from "@/app/hooks/useVisitorId";
 import Image from "next/image";
 import React from "react";
 import SheetOrBackButton from "./SheetOrBackButton";
+import { Sheet } from "@silk-hq/components";
+import { SheetDismissButton } from "../examples/_GenericComponents/SheetDismissButton/SheetDismissButton";
 
 // Custom hook to handle location status with proper browser detection and error handling
 function useLocationStatus() {
@@ -65,16 +67,16 @@ function useLocationStatus() {
 
     // Check permission on mount - but only on client side
     useEffect(() => {
-        if (checkInProgress || typeof window === 'undefined') return;
+        if (typeof window === 'undefined') return;
         setCheckInProgress(true);
         setStatus('checking');
         checkPermission();
-        
+
         // Cleanup function
         return () => {
             setCheckInProgress(false);
         };
-    }, [checkInProgress, checkPermission]);
+    }, [checkPermission]);
 
     return {
         isEnabled: status === 'enabled',
@@ -89,19 +91,38 @@ interface UserPhoto {
     url?: string;
     title?: string;
     status: string;
-    type: 'issue' | 'maintenance' | 'in_progress';
+    type: 'issue' | 'maintenance' | 'in_progress' | 'irrelevant';
     related_node_id?: string;
+    irrelevant_reason?: string;
+    irrelevant_confidence?: number;
 }
 
-const Account = ({ isIntercepted = false }: { isIntercepted?: boolean }) => {
+const Account = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
     const router = useRouter();
     const visitorId = useVisitorId();
     const [isVerified, setIsVerified] = useState(false);
     const [userPhotos, setUserPhotos] = useState<UserPhoto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [irrelevantSheetPhoto, setIrrelevantSheetPhoto] = useState<UserPhoto | null>(null);
     
     // Use our custom location hook instead of managing location state directly
     const location = useLocationStatus();
+
+    // Move loadUserPhotos outside useEffect so it can be reused
+    const loadUserPhotos = useCallback(async () => {
+        if (!visitorId) return;
+        setIsLoading(true);
+        try {
+            const photos = await fetchUserPhotos(visitorId);
+            setUserPhotos(photos);
+            console.log("User photos:", photos);
+        } catch (error) {
+            console.error("Error fetching user photos:", error);
+            setUserPhotos([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [visitorId]);
 
     // Fetch user photos when visitor ID is available
     useEffect(() => {
@@ -109,49 +130,30 @@ const Account = ({ isIntercepted = false }: { isIntercepted?: boolean }) => {
             // Keep loading state true if we're still waiting for visitor ID
             return;
         }
-        
-        const loadUserPhotos = async () => {
-            try {
-                const photos = await fetchUserPhotos(visitorId);
-                setUserPhotos(photos);
-            } catch (error) {
-                console.error("Error fetching user photos:", error);
-                setUserPhotos([]);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         loadUserPhotos();
-    }, [visitorId]);
+    }, [visitorId, loadUserPhotos]);
 
     const handleVerify = () => {
         setIsVerified(true);
     };
 
     const handlePhotoClick = (photo: UserPhoto) => {
-        console.log("Photo clicked:", photo);
-        console.log("Type check:", photo.type === 'maintenance');
-        console.log("ID check:", !!photo.related_node_id);
-        console.log("Full condition:", photo.type === 'maintenance' && !!photo.related_node_id);
-        
+        if (photo.type === 'irrelevant') {
+            setIrrelevantSheetPhoto(photo);
+            return;
+        }
         if (photo.type === 'issue' && photo.related_node_id) {
-            // Navigate to issue page using the event_id
             router.push(`/issue/${photo.related_node_id}`);
         } else if (photo.type === 'maintenance') {
-            // For maintenance items, navigate using photo_id regardless of related_node_id
-            // This ensures navigation works even if maintenance ID is not properly extracted
-            console.log("Maintenance condition triggered!");
             router.push(`/image/${photo.photo_id}`);
         }
-        // Do nothing for 'in_progress' type - it's not clickable
     };
 
     return (
         <div className="relative h-full overflow-auto px-6">
             <SheetOrBackButton
                 isIntercepted={isIntercepted}
-                className="absolute left-4 top-4 z-10 bg-white border border-gray-200 rounded-full p-2 shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="fixed right-0 top-4 z-10 bg-white border border-gray-200 rounded-full p-2 hover:bg-gray-100 focus:none"
             />
             
             {/* Profile Section */}
@@ -275,19 +277,23 @@ const Account = ({ isIntercepted = false }: { isIntercepted?: boolean }) => {
                                             ? "bg-[#F7F7E6] text-[#728019]" 
                                             : photo.status === "Maintained"
                                                 ? "bg-[#E8F5E9] text-[#3B7B3B]"
-                                                : "bg-[#F7F7E6] text-[#728019]"
+                                                : photo.status === "Irrelevant"
+                                                    ? "bg-[#FFE6E6] text-[#D10000]"
+                                                    : "bg-[#F7F7E6] text-[#728019]"
                                 }`}>
                                     {photo.status}
                                 </span>
                             </div>
                         ))}
                         
+                        {/* Refresh Button */}
                         <button 
-                            className="w-full bg-white text-[#333] py-3 text-base font-semibold rounded-2xl border border-[#E0E0E0] cursor-pointer flex items-center justify-center gap-2"
-                            onClick={() => router.push('/issues')}
+                            className={`w-full bg-white text-[#333] py-3 text-base font-semibold rounded-2xl border border-[#E0E0E0] cursor-pointer flex items-center justify-center gap-2 ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}
+                            onClick={loadUserPhotos}
+                            disabled={isLoading}
                         >
-                            <Bell size={18} />
-                            View All Issues
+                            <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
+                            {isLoading ? 'Refreshing...' : 'Refresh'}
                         </button>
                     </div>
                 ) : (
@@ -304,6 +310,48 @@ const Account = ({ isIntercepted = false }: { isIntercepted?: boolean }) => {
                     </div>
                 )}
             </div>
+
+            {irrelevantSheetPhoto && (
+                <Sheet.Root
+                    license="non-commercial"
+                    presented={!!irrelevantSheetPhoto}
+                    onPresentedChange={(open) => {
+                        if (!open) setIrrelevantSheetPhoto(null);
+                    }}
+                >
+                    <Sheet.Portal>
+                        <Sheet.View
+                            contentPlacement="center"
+                            tracks="top"
+                            nativeEdgeSwipePrevention={true}
+                            style={{ zIndex: 50, height: 'calc(100svh + 60px)' }}
+                        >
+                            <Sheet.Backdrop travelAnimation={{ opacity: [0, 0.33] }} themeColorDimming="auto" />
+                            <Sheet.Content
+                                className="bg-white rounded-2xl p-6 shadow-lg w-full max-w-md overflow-y-auto"
+                                style={{ height: 'calc(min(700px, 70svh) + env(safe-area-inset-bottom, 0px))' }}
+                            >
+                                <div className="h-full w-full flex flex-col">
+                                    <Sheet.Trigger action="dismiss" asChild className="fixed top-0 right-0">
+                                        <SheetDismissButton className="w-10 h-10" />
+                                    </Sheet.Trigger>
+                                    {irrelevantSheetPhoto.url && (
+                                        <div className="mb-4 flex justify-center">
+                                            <Image src={irrelevantSheetPhoto.url} alt={irrelevantSheetPhoto.title || 'Irrelevant photo'} width={200} height={200} className="rounded-lg object-cover" />
+                                        </div>
+                                    )}
+                                    <div className="mb-2">
+                                        <span className="font-medium">Reason:</span> {irrelevantSheetPhoto.irrelevant_reason || 'N/A'}
+                                    </div>
+                                    <div className="mb-2">
+                                        <span className="font-medium">Confidence:</span> {irrelevantSheetPhoto.irrelevant_confidence !== undefined ? `${(irrelevantSheetPhoto.irrelevant_confidence * 100).toFixed(1)}%` : 'N/A'}
+                                    </div>
+                                </div>
+                            </Sheet.Content>
+                        </Sheet.View>
+                    </Sheet.Portal>
+                </Sheet.Root>
+            )}
         </div>
     );
 };

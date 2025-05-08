@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const VISION_API_URL = process.env.NEXT_PUBLIC_VISION_API_URL || 'https://api.cristeaz.com';
+const VISION_API_URL = process.env.NEXT_PUBLIC_VISION_API_URL || 'http://0.0.0.0:8000';
 
 /**
  * Proxy API to forward requests to Vision API (bypassing CORS)

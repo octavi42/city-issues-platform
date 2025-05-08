@@ -1,9 +1,13 @@
+"use client";
+
 //import liraries
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { runQuery } from '@/lib/neo4j';
 import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft } from "lucide-react";
+import SheetOrBackButton from "./SheetOrBackButton";
 
 // Define interfaces for image data
 interface ContentItem {
@@ -51,7 +55,7 @@ interface MaintainedItem {
 }
 
 // create a component
-const Maintained = () => {
+const Maintained = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
     const router = useRouter();
     
     // State and refs for image visibility
@@ -299,7 +303,7 @@ const Maintained = () => {
                                 >
                                     <div className={`relative w-full ${imageHeight}`}>
                                         <Image 
-                                            src={imageData.imageUrl} 
+                                            src={imageData.imageUrl || '/images/maintained.jpg'} 
                                             alt={imageData.issueText} 
                                             fill
                                             style={{ objectFit: 'cover' }}
@@ -341,7 +345,7 @@ const Maintained = () => {
                                 >
                                     <div className={`relative w-full ${imageHeight}`}>
                                         <Image 
-                                            src={imageData.imageUrl} 
+                                            src={imageData.imageUrl || '/images/maintained.jpg'} 
                                             alt={imageData.issueText} 
                                             fill
                                             style={{ objectFit: 'cover' }}
@@ -361,41 +365,51 @@ const Maintained = () => {
         );
     };
 
-    return (
-        <div className="h-full w-full bg-white text-black font-['Schibsted_Grotesk',Arial,sans-serif] p-6 pb-20">
-            <div className="max-w-[28rem] mx-auto h-full overflow-y-auto">
-                <div className="w-full h-10"></div>
+    try {
+        return (
+            <div className="h-full w-full bg-white text-black font-['Schibsted_Grotesk',Arial,sans-serif] p-6 pb-20">
+                <SheetOrBackButton
+                    isIntercepted={isIntercepted}
+                    className="rounded-full p-2 focus:none"
+                    icon={<ArrowLeft className="w-5 h-5" />}
+                />
+                <div className="max-w-[28rem] mx-auto h-full overflow-y-auto">
+                    <div className="w-full h-10"></div>
 
-                <div className="flex items-center mb-4 relative w-full">
-                    {isLoading ? (
-                        <Skeleton className="h-8 w-2/3 bg-gray-200" />
-                    ) : (
-                        <h1 className="text-4xl font-bold leading-tight capitalize text-black flex-1">Well maintained element from city</h1>
-                    )}
-                </div>
-
-                <div className="w-full h-10"></div>
-
-                {isLoading ? (
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-full bg-gray-200" />
-                        <Skeleton className="h-4 w-3/4 bg-gray-200" />
+                    <div className="flex items-center mb-4 relative w-full">
+                        {isLoading ? (
+                            <Skeleton className="h-8 w-2/3 bg-gray-200" />
+                        ) : (
+                            <h1 className="text-4xl font-bold leading-tight capitalize text-black flex-1">Well maintained element from city</h1>
+                        )}
                     </div>
-                ) : (
-                    <p className="text-xl leading-tight text-[#787575] tracking-wider mb-6 w-full">
-                        Users from around the city upload these images. We recommend you vote on the relevance of every image when opening them to make the system as efficient as possible.
-                    </p>
-                )}
 
-                <div className="w-full h-4"></div>
-                
-                {/* Images Grid with skeleton loading state */}
-                {isLoading ? renderSkeletonGrid() : renderImageGrid()}
-                
-                <div className="w-full h-20"></div>
+                    <div className="w-full h-10"></div>
+
+                    {isLoading ? (
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-full bg-gray-200" />
+                            <Skeleton className="h-4 w-3/4 bg-gray-200" />
+                        </div>
+                    ) : (
+                        <p className="text-xl leading-tight text-[#787575] tracking-wider mb-6 w-full">
+                            Users from around the city upload these images. We recommend you vote on the relevance of every image when opening them to make the system as efficient as possible.
+                        </p>
+                    )}
+
+                    <div className="w-full h-4"></div>
+                    
+                    {/* Images Grid with skeleton loading state */}
+                    {isLoading ? renderSkeletonGrid() : renderImageGrid()}
+                    
+                    <div className="w-full h-20"></div>
+                </div>
             </div>
-        </div>
-    );
+        );
+    } catch (e) {
+        console.error('Error rendering image grid:', e, imageDataList, photosWithMaintained);
+        return null;
+    }
 };
 
 //make this component available to the app

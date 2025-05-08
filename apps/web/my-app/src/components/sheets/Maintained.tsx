@@ -46,7 +46,7 @@ export default function MaintainedSheetWrapper() {
             >
                 <Sheet.Backdrop className="Page-backdrop" />
                 <Sheet.Content className="Page-content">
-                  <Maintained />
+                  <Maintained isIntercepted={true} />
                 </Sheet.Content>
               </Sheet.View>
             </Sheet.Portal>
