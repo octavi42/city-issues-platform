@@ -5,6 +5,6 @@ import Issue from '@/components/pages/Issue';
 export default async function IssueDetailPage() {
   // The Issue component doesn't accept data props so we simply render it
   // The component will fetch its own data based on the URL params
-  return <Issue />
+  return <Issue isIntercepted={false} />
 } 
 

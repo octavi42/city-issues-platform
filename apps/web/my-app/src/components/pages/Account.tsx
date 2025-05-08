@@ -6,6 +6,8 @@ import { MapPin, CheckCircle, AlertCircle, Bell, Camera } from "lucide-react";
 import { fetchUserPhotos } from "@/lib/neo4j-queries";
 import { useVisitorId } from "@/app/hooks/useVisitorId";
 import Image from "next/image";
+import React from "react";
+import SheetOrBackButton from "./SheetOrBackButton";
 
 // Custom hook to handle location status with proper browser detection and error handling
 function useLocationStatus() {
@@ -63,13 +65,16 @@ function useLocationStatus() {
 
     // Check permission on mount - but only on client side
     useEffect(() => {
+        if (checkInProgress || typeof window === 'undefined') return;
+        setCheckInProgress(true);
+        setStatus('checking');
         checkPermission();
         
         // Cleanup function
         return () => {
             setCheckInProgress(false);
         };
-    }, [checkPermission]);
+    }, [checkInProgress, checkPermission]);
 
     return {
         isEnabled: status === 'enabled',
@@ -88,7 +93,7 @@ interface UserPhoto {
     related_node_id?: string;
 }
 
-const Account = () => {
+const Account = ({ isIntercepted = false }: { isIntercepted?: boolean }) => {
     const router = useRouter();
     const visitorId = useVisitorId();
     const [isVerified, setIsVerified] = useState(false);
@@ -144,6 +149,10 @@ const Account = () => {
 
     return (
         <div className="relative h-full overflow-auto px-6">
+            <SheetOrBackButton
+                isIntercepted={isIntercepted}
+                className="absolute left-4 top-4 z-10 bg-white border border-gray-200 rounded-full p-2 shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
             
             {/* Profile Section */}
             <div className="flex flex-col items-center mb-8 mt-8">

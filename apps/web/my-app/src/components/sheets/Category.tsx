@@ -46,7 +46,7 @@ export default function CategorySheetWrapper() {
             >
                 <Sheet.Backdrop className="Page-backdrop" />
                 <Sheet.Content className="Page-content">
-                  <Category />
+                  <Category isIntercepted={true} />
                 </Sheet.Content>
               </Sheet.View>
             </Sheet.Portal>

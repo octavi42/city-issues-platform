@@ -12,6 +12,7 @@ import { DetectionEvent } from "@/lib/neo4j-schema";
 import { format } from "date-fns";
 import Image from "next/image";
 import CommentSheet from "@/components/sheets/CommentSheet";
+import SheetOrBackButton from "./SheetOrBackButton";
 
 interface PhotoData {
   photo_id?: string;
@@ -57,7 +58,7 @@ const sampleComments = [
   }
 ];
 
-const Issue = () => {
+const Issue = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
     const pathname = usePathname();
     const mountedRef = useRef(false);
     const [loading, setLoading] = useState(true);
@@ -280,6 +281,10 @@ const Issue = () => {
                   {/* Sticky title bar with close button */}
                   <div className="sticky top-0 z-[51] flex items-center justify-between py-6 bg-white/90 backdrop-blur-sm">
                     <h2 className="text-2xl font-bold tracking-tight text-gray-900">{issueData.name}</h2>
+                    <SheetOrBackButton
+                        isIntercepted={isIntercepted}
+                        className="rounded-full p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
                   </div>
                 
                   {/* Description */}

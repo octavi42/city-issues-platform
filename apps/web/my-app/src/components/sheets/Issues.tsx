@@ -54,7 +54,7 @@ export default function IssueSheetWrapper() {
             className={`SheetWithStacking-content contentPlacement-${contentPlacement}`}
             >
             <div className="SheetWithStacking-innerContent">
-                <Issue />
+                <Issue isIntercepted={true} />
             </div>
             </Sheet.Content>
         </Sheet.View>

@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { fetchCategories, fetchDetectionEventsByCategory, fetchPhotosWithDetectionEvents } from '@/lib/neo4j-queries';
 import { Category as CategoryType, DetectionEvent } from '@/lib/neo4j-schema';
 import { Skeleton } from "@/components/ui/skeleton";
+import SheetOrBackButton from "./SheetOrBackButton";
+import { ArrowLeft } from "lucide-react";
 
 // Define interfaces for image data
 interface ContentItem {
@@ -43,7 +45,7 @@ interface ImageData {
 }
 
 // create a component
-const Category = () => {
+const Category = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
     const router = useRouter();
     const params = useParams();
     const slug = params?.slug as string;
@@ -427,7 +429,12 @@ const Category = () => {
             <div className="max-w-[28rem] mx-auto h-full overflow-y-auto">
                 <div className="w-full h-10"></div>
 
-                <div className="flex items-center mb-4 relative w-full">
+                <div className="flex items-center mb-4 w-full gap-2">
+                    <SheetOrBackButton
+                        isIntercepted={isIntercepted}
+                        className="rounded-full p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        icon={<ArrowLeft className="w-5 h-5" />}
+                    />
                     {isLoading ? (
                         <Skeleton className="h-8 w-2/3 bg-gray-200" />
                     ) : (
