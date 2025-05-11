@@ -14,6 +14,7 @@ A Next.js 13 application for exploring and managing city infrastructure issues u
 - [Project Structure](#project-structure)
 - [Contributing](#contributing)
 - [S3 Integration](#s3-integration)
+- [Direct-to-S3 Upload Flow](#direct-to-s3-upload-flow)
 
 ## Features
 - Home page with dynamic category cards loaded from Neo4j (fallback to static data).
@@ -143,3 +144,18 @@ Make sure your S3 bucket is configured with appropriate CORS settings to allow p
 ```
 
 Note: In a production environment, you should restrict the AllowedOrigins to your specific domains.
+
+## Direct-to-S3 Upload Flow
+
+This application now uses a direct-to-S3 upload flow to bypass Vercel's serverless function body size limit. The client requests a pre-signed S3 URL from `/api/upload/presign`, uploads the image directly to S3, and then sends the S3 URL to the backend for analysis.
+
+### Required Environment Variables
+
+In your `.env.local` file, add the following variables (in addition to the AWS credentials):
+
+```
+NEXT_PUBLIC_S3_BUCKET_NAME=your_bucket_name
+NEXT_PUBLIC_AWS_REGION=your_region # e.g., us-east-1
+```
+
+These are used on the client to construct the public S3 URL after upload.
