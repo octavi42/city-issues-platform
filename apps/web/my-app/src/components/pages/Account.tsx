@@ -153,7 +153,7 @@ const Account = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
         <div className="relative h-full overflow-auto px-6">
             <SheetOrBackButton
                 isIntercepted={isIntercepted}
-                className="fixed right-0 top-4 z-10 bg-white border border-gray-200 rounded-full p-2 hover:bg-gray-100 focus:none"
+                className="fixed right-4 top-4 z-10 bg-white border border-gray-200 rounded-full p-2 hover:bg-gray-100 focus:none"
             />
             
             {/* Profile Section */}
@@ -239,7 +239,7 @@ const Account = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
             <div className="mt-6 mb-20">
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <AlertCircle size={20} />
-                    Reported Issues
+                    My reports
                 </h2>
                 
                 {isLoading ? (
@@ -271,17 +271,17 @@ const Account = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
                                     <span className="text-base font-medium">{photo.title || 'Reported Item'}</span>
                                 </div>
                                 <span className={`inline-block py-1 px-3 rounded-2xl text-sm font-medium ${
-                                    photo.status === "Open" 
-                                        ? "bg-[#E6F0FF] text-[#075CDD]" 
-                                        : photo.status === "In Progress" 
-                                            ? "bg-[#F7F7E6] text-[#728019]" 
-                                            : photo.status === "Maintained"
-                                                ? "bg-[#E8F5E9] text-[#3B7B3B]"
-                                                : photo.status === "Irrelevant"
-                                                    ? "bg-[#FFE6E6] text-[#D10000]"
-                                                    : "bg-[#F7F7E6] text-[#728019]"
+                                    photo.type === "issue" && photo.related_node_id
+                                        ? "bg-[#E6F0FF] text-[#075CDD]"
+                                        : photo.type === "maintenance" && photo.related_node_id
+                                            ? "bg-[#E8F5E9] text-[#3B7B3B]"
+                                            : "bg-[#FFE6E6] text-[#D10000]"
                                 }`}>
-                                    {photo.status}
+                                    {photo.type === "issue" && photo.related_node_id
+                                        ? "Issue"
+                                        : photo.type === "maintenance" && photo.related_node_id
+                                            ? "Maintenance"
+                                            : "Irrelevant"}
                                 </span>
                             </div>
                         ))}

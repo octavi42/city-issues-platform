@@ -455,33 +455,6 @@ const Category = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
 
                 <div className="w-full h-4"></div>
                 
-                {/* Stats Container */}
-                <div className="bg-[#F7F7F7] rounded-[1.875rem] p-6 mb-6 w-full">
-                    {isLoading ? (
-                        <div className="flex justify-between">
-                            {/* Simple placeholders for stats */}
-                            <Skeleton className="h-10 w-20 bg-gray-200" />
-                            <Skeleton className="h-10 w-20 bg-gray-200" />
-                            <Skeleton className="h-10 w-20 bg-gray-200" />
-                        </div>
-                    ) : (
-                        <div className="flex justify-between mb-6">
-                            <div className="flex flex-col items-center text-center flex-1">
-                                <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.reported}</div>
-                                <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">reported issues</div>
-                            </div>
-                            <div className="flex flex-col items-center text-center flex-1">
-                                <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.solved}</div>
-                                <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">solved issues</div>
-                            </div>
-                            <div className="flex flex-col items-center text-center flex-1">
-                                <div className="text-4xl font-bold leading-tight text-black mb-1">{categoryData.stats.resolution}</div>
-                                <div className="text-[0.9375rem] leading-tight text-black text-center max-w-[5rem]">resolution time</div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-                
                 {/* Severity Container */}
                 {/* <div className="bg-[#F7F7F7] rounded-[1.875rem] p-4 px-6 flex justify-between items-center mb-6 w-full">
                     {isLoading ? (

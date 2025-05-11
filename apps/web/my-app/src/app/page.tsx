@@ -4,8 +4,8 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from 'next/navigation';
 import { animate } from 'animejs';
 import { categories as staticCategories } from '@/data/categories';
-import { fetchCategories, fetchMaintainedPhotos } from '@/lib/neo4j-queries';
-import { Category } from '@/lib/neo4j-schema';
+import { fetchCategories, fetchMaintainedPhotos, fetchLatestIssues, countIssues, countMaintainedElements, countCriticalProblems } from '@/lib/neo4j-queries';
+import { Category, DetectionEvent } from '@/lib/neo4j-schema';
 import { Skeleton } from "@/components/ui/skeleton";
 import { User } from 'lucide-react';
 import {CategoriesSheetWrapper} from "@/components/modals/Categories";
@@ -25,6 +25,10 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [maintainedPhotos, setMaintainedPhotos] = useState<{photo_id: string, url?: string, title?: string}[]>([]);
+  const [issues, setIssues] = useState<DetectionEvent[]>([]);
+  const [issueCount, setIssueCount] = useState<number | null>(null);
+  const [maintainedCount, setMaintainedCount] = useState<number | null>(null);
+  const [criticalCount, setCriticalCount] = useState<number | null>(null);
 
   // Fetch categories from Neo4j
   useEffect(() => {
@@ -81,6 +85,47 @@ export default function Home() {
     };
 
     getMaintainedPhotos();
+  }, []);
+
+  // Fetch latest issues
+  useEffect(() => {
+    const getLatestIssues = async () => {
+      try {
+        setIsLoading(true);
+        const latestIssues = await fetchLatestIssues(3);
+        setIssues(latestIssues);
+      } catch (err) {
+        console.error("Failed to fetch latest issues from Neo4j:", err);
+        setError("Failed to load issues");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getLatestIssues();
+  }, []);
+
+  // Fetch counts for issues, maintained elements, and critical problems
+  useEffect(() => {
+    async function fetchCounts() {
+      setIsLoading(true);
+      try {
+        const [issues, maintained, critical] = await Promise.all([
+          countIssues(),
+          countMaintainedElements(),
+          countCriticalProblems()
+        ]);
+        setIssueCount(issues);
+        setMaintainedCount(maintained);
+        setCriticalCount(critical);
+      } catch (err) {
+        setError('Failed to load counts');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchCounts();
   }, []);
 
   // Memoize random categories to prevent re-shuffling on hover
@@ -212,24 +257,30 @@ export default function Home() {
 
           <div className="pb-12">
             <div className="grid grid-cols-2 gap-5">
-              <div className="rounded-2xl p-4 bg-[#fecc02] ">
-                <p className="text-3xl font-bold text-white">40</p>
-                <p className="text-sm text-white">issues</p>
+              <div className="rounded-2xl p-4 bg-[#F6F7FB] shadow-none">
+                <div className="text-3xl font-bold text-[#1A237E]">
+                  {issueCount !== null ? issueCount : '*'}
+                </div>
+                <p className="text-sm text-[#1A237E]/70">issues reported</p>
               </div>
               
-              <div className="rounded-2xl p-4 bg-[#ffffff] border border-gray-200">
-                <p className="text-3xl font-bold">5s</p>
-                <p className="text-sm text-gray-600">avg response time</p>
+              <div className="rounded-2xl p-4 bg-[#F6FBF7] shadow-none">
+                <div className="text-3xl font-bold text-[#388E3C]">
+                  {maintainedCount !== null ? maintainedCount : '*'}
+                </div>
+                <p className="text-sm text-[#388E3C]/70">well maintained</p>
               </div>
               
-              <div className="rounded-2xl p-4 bg-[#ffffff] border border-gray-200">
-                <p className="text-3xl font-bold">25</p>
-                <p className="text-sm text-gray-600">degrees celsius</p>
+              <div className="rounded-2xl p-4 bg-[#FBF9F6] shadow-none">
+                <div className="text-3xl font-bold text-[#B26A00]">5s</div>
+                <p className="text-sm text-[#B26A00]/70">avg response time</p>
               </div>
               
-              <div className="rounded-2xl p-4 bg-[#ff5900] ">
-                <p className="text-3xl font-bold text-white">5</p>
-                <p className="text-sm text-red-100">critical problems</p>
+              <div className="rounded-2xl p-4 bg-[#FBF6F6] shadow-none">
+                <div className="text-3xl font-bold text-[#D32F2F]">
+                  {criticalCount !== null ? criticalCount : '*'}
+                </div>
+                <p className="text-sm text-[#D32F2F]/70">critical problems</p>
               </div>
             </div>
           </div>
@@ -341,9 +392,9 @@ export default function Home() {
           <div className="pb-12">
             <div className="flex justify-between items-center pb-8">
               <h2 className="text-2xl font-semibold">Issues</h2>
-              <div className="bg-gray-100 rounded-full py-2 px-4 text-sm font-semibold tracking-wide">
+              {/* <div className="bg-gray-100 rounded-full py-2 px-4 text-sm font-semibold tracking-wide">
                 <span>View all</span>
-              </div>
+              </div> */}
             </div>
             
             <div className="flex flex-col gap-5">
@@ -360,23 +411,50 @@ export default function Home() {
                 ))
               ) : (
                 <>
-                  <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
-                    <p className="text-lime-900 text-base">&ldquo;Lorem Ipsum is simply dummy text of the printing and typesetting industry.&rdquo;</p>
-                  </div>
-                  
-                  <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
-                    <p className="text-lime-900 text-base">&ldquo;Lorem Ipsum is simply dummy text of the printing and typesetting industry.&rdquo;</p>
-                  </div>
-                  
-                  <div className="rounded-2xl p-6 bg-[#DBF24C] border border-lime-200">
-                    <p className="text-lime-900 text-base">&ldquo;Lorem Ipsum is simply dummy text of the printing and typesetting industry.&rdquo;</p>
-                  </div>
+                  {issues.map((issue) => {
+                    // Determine severity color for right border
+                    let rightBorderColor = 'border-r-8 border-blue-400';
+                    let badgeColor = 'bg-blue-100 text-blue-800';
+                    if (issue.severity?.toLowerCase() === 'high') {
+                      rightBorderColor = 'border-r-8 border-red-500';
+                      badgeColor = 'bg-red-100 text-red-800';
+                    } else if (issue.severity?.toLowerCase() === 'medium') {
+                      rightBorderColor = 'border-r-8 border-yellow-400';
+                      badgeColor = 'bg-yellow-100 text-yellow-800';
+                    }
+                    // Format date
+                    const dateStr = issue.reported_at ? new Date(issue.reported_at).toLocaleDateString() : '';
+                    return (
+                      <div
+                        key={issue.event_id}
+                        className={`flex flex-col gap-2 rounded-2xl bg-white border border-l border-t border-b border-gray-200 p-4 border-r-8 ${rightBorderColor} cursor-pointer transition-shadow hover:shadow-lg transition-transform duration-150 ease-out active:scale-95`}
+                        onClick={() => router.push(`/issue/${issue.event_id}`)}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`View details for ${issue.name || 'issue'}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-base text-gray-600 truncate max-w-[70%]">
+                            {issue.name || 'Untitled Issue'}
+                          </span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}>{issue.severity ? issue.severity.charAt(0).toUpperCase() + issue.severity.slice(1) : 'Unknown'}</span>
+                        </div>
+                        <p className="text-gray-500 text-sm truncate max-w-full">
+                          {issue.description || 'No description provided.'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-300">Reported:</span>
+                          <span className="text-xs text-gray-400">{dateStr}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </>
               )}
             </div>
           </div>
 
-          <div className="rounded-2xl p-8 bg-[#97B9FF] text-white mb-10 border border-blue-300">
+          {/* <div className="rounded-2xl p-8 bg-[#97B9FF] text-white mb-10 border border-blue-300">
             <div className="flex justify-between items-center"> 
               <h2 className="text-2xl font-semibold">How to use?</h2>
               <div className="flex items-center gap-1.5">
@@ -387,7 +465,7 @@ export default function Home() {
                 <span className="text-2xl font-semibold opacity-10">.</span>
               </div>
             </div>
-          </div>
+          </div> */}
         </main>
       </div>
     </div>

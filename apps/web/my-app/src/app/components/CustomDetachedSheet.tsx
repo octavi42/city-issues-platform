@@ -9,6 +9,7 @@ import { useVisitorId } from '../hooks/useVisitorId';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { analyzeImage } from '@/lib/services/visionService';
 import { uploadImageToS3 } from '@/lib/services/s3UploadService';
+import { Camera } from "lucide-react";
 
 // Helper function to convert data URL to File object
 function dataURLtoFile(dataUrl: string, filename: string): File {
@@ -553,10 +554,7 @@ const CustomDetachedSheet = () => {
                           className="bg-gray-200 text-gray-800 p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors"
                           onClick={() => fileInputRef.current?.click()}
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a3 3 0 006 0V7a3 3 0 00-3-3zm5 3a5 5 0 00-10 0v4a5 5 0 0010 0V7z" clipRule="evenodd" />
-                            <path d="M14 7a1 1 0 10-2 0v4a1 1 0 102 0V7z" />
-                          </svg>
+                          <Camera className="h-5 w-5" />
                           Upload Image
                         </button>
                       </div>

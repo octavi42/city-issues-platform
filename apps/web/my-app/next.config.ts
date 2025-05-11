@@ -11,7 +11,7 @@ const nextConfig = {
     NEO4J_PASSWORD: process.env.NEO4J_PASSWORD,
   },
   experimental: {
-    allowedDevOrigins: ['localhost', '192.168.1.248'],
+    allowedDevOrigins: ['localhost', '192.168.1.248', '172.20.10.10', 'local-origin.dev'],
   },
 };
 

@@ -324,3 +324,36 @@ export async function fetchUserPhotos(userId: string): Promise<Array<{
     };
   });
 }
+
+/** Fetch the latest issues (default 3) ordered by reported_at descending */
+export async function fetchLatestIssues(limit: number = 3): Promise<DetectionEvent[]> {
+  const cypher = `
+    MATCH (i:Issue)
+    RETURN properties(i) AS node
+    ORDER BY i.reported_at DESC
+    LIMIT toInteger($limit)
+  `;
+  const results = await runQuery<{ node: DetectionEvent }>(cypher, { limit });
+  return results.map(r => r.node);
+}
+
+/** Count all issues */
+export async function countIssues(): Promise<number> {
+  const cypher = `MATCH (i:Issue) RETURN count(i) AS count`;
+  const result = await runQuery<{ count: number }>(cypher);
+  return result[0]?.count || 0;
+}
+
+/** Count all well maintained elements (photos with Maintenance) */
+export async function countMaintainedElements(): Promise<number> {
+  const cypher = `MATCH (m:Maintenance)<-[:CONTAINS]-(p:Photo) RETURN count(p) AS count`;
+  const result = await runQuery<{ count: number }>(cypher);
+  return result[0]?.count || 0;
+}
+
+/** Count all critical problems (issues with severity 'high') */
+export async function countCriticalProblems(): Promise<number> {
+  const cypher = `MATCH (i:Issue) WHERE toLower(i.severity) = 'high' RETURN count(i) AS count`;
+  const result = await runQuery<{ count: number }>(cypher);
+  return result[0]?.count || 0;
+}
