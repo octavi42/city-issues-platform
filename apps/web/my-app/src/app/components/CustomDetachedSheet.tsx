@@ -10,7 +10,6 @@ import { useUserLocation } from '../hooks/useUserLocation';
 import { analyzeImage } from '@/lib/services/visionService';
 import { uploadImageToS3 } from '@/lib/services/s3UploadService';
 import { Camera } from "lucide-react";
-import { compressImage } from '@/lib/utils/imageCompression';
 
 // Helper function to convert data URL to File object
 function dataURLtoFile(dataUrl: string, filename: string): File {
@@ -23,6 +22,30 @@ function dataURLtoFile(dataUrl: string, filename: string): File {
     u8arr[n] = bstr.charCodeAt(n);
   }
   return new File([u8arr], filename, { type: mime });
+}
+
+// Utility to compress image using canvas
+async function compressImage(dataUrl: string, maxWidth = 1024, quality = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject('Canvas context not available');
+      ctx.drawImage(img, 0, 0, width, height);
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+      resolve(compressedDataUrl);
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
 }
 
 const CustomDetachedSheet = () => {
@@ -264,20 +287,19 @@ const CustomDetachedSheet = () => {
     openCamera();
   };
   
-  const savePhoto = () => {
+  const savePhoto = async () => {
     if (photoRef.current && videoRef.current) {
       const photo = photoRef.current.toDataURL('image/jpeg');
-      setImageData(photo);
+      // Compress the photo before setting
+      const compressed = await compressImage(photo);
+      setImageData(compressed);
       setShowConfirmation(true);
       setHasPhoto(false);
-      
       try {
         // Stop the camera when we're done with it
         const tracks = videoRef.current.srcObject instanceof MediaStream ? 
           videoRef.current.srcObject.getTracks() : [];
         tracks.forEach(track => track.stop());
-        
-        // Close the camera UI but keep the sheet open for confirmation
         setShowCamera(false);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -291,19 +313,18 @@ const CustomDetachedSheet = () => {
   // Setup file input for the upload option
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setPresented(true)
 
     const file = e.target.files?.[0];
     if (file) {
-      // Here you would handle the uploaded file
-      console.log("File uploaded:", file);
-      
       // Read the file as a data URL and show confirmation
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const result = reader.result as string;
-        setImageData(result);
+        // Compress the image before setting
+        const compressed = await compressImage(result);
+        setImageData(compressed);
         setShowConfirmation(true);
         // Don't close the sheet
       };
@@ -320,14 +341,12 @@ const CustomDetachedSheet = () => {
       setIsUploading(true);
       // Convert data URL to File object
       const imageFile = dataURLtoFile(imageData, `photo-${Date.now()}.jpg`);
-      // Compress the image before upload
-      const compressedFile = await compressImage(imageFile, 1280, 1280, 0.7);
       // Get city and country info - in a real app, you might use a geocoding service
       // For now we'll use placeholder values
       const city = "Cluj-Napoca"; // This should come from geocoding the coordinates
       const country = "Romania";   // This should come from geocoding the coordinates
       // Step 1: Upload image to S3
-      const s3Result = await uploadImageToS3(compressedFile);
+      const s3Result = await uploadImageToS3(imageFile);
       if (!s3Result.success || !s3Result.url) {
         throw new Error(s3Result.error || "Failed to upload image to S3");
       }
