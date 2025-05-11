@@ -10,6 +10,7 @@ import { useUserLocation } from '../hooks/useUserLocation';
 import { analyzeImage } from '@/lib/services/visionService';
 import { uploadImageToS3 } from '@/lib/services/s3UploadService';
 import { Camera } from "lucide-react";
+import { compressImage } from '@/lib/utils/imageCompression';
 
 // Helper function to convert data URL to File object
 function dataURLtoFile(dataUrl: string, filename: string): File {
@@ -319,12 +320,14 @@ const CustomDetachedSheet = () => {
       setIsUploading(true);
       // Convert data URL to File object
       const imageFile = dataURLtoFile(imageData, `photo-${Date.now()}.jpg`);
+      // Compress the image before upload
+      const compressedFile = await compressImage(imageFile, 1280, 1280, 0.7);
       // Get city and country info - in a real app, you might use a geocoding service
       // For now we'll use placeholder values
       const city = "Cluj-Napoca"; // This should come from geocoding the coordinates
       const country = "Romania";   // This should come from geocoding the coordinates
       // Step 1: Upload image to S3
-      const s3Result = await uploadImageToS3(imageFile);
+      const s3Result = await uploadImageToS3(compressedFile);
       if (!s3Result.success || !s3Result.url) {
         throw new Error(s3Result.error || "Failed to upload image to S3");
       }
