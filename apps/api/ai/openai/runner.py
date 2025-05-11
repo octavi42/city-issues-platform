@@ -3,7 +3,7 @@ Runner module for the city inspector agent.
 """
 try:
     from agents import Runner
-except ImportError:
+except Exception:
     # Fallback stub Runner for environments without the agents package (e.g., local demo)
     class Runner:
         @staticmethod

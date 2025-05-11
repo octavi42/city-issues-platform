@@ -10,7 +10,7 @@ import uuid
 from pathlib import Path
 from utils.env_loader import load_dotenv
 from utils.s3 import upload_file_to_s3
-from ai.openai.runner import run_with_image_url
+from aiv2.agents.vision.vision_agent import analyze_vision_image
 from db.neo4j import get_session
 
 def run_demo():
@@ -51,9 +51,13 @@ def run_demo():
         print(f"Uploading {filename} to s3://{bucket}/{object_name}...")
         image_url = upload_file_to_s3(file_path, bucket, object_name)
         print(f"Uploaded URL: {image_url}")
-        # Run the inspector on the uploaded S3 URL
+        # Run the vision agent on the uploaded S3 URL
         print(f"User: {user['id']}, Location: {location['city']}, Image: {image_url}")
-        result = run_with_image_url(image_url, user, location)
+        result = analyze_vision_image(
+            image_url=image_url,
+            user={"id": user["id"], "name": user["name"]},
+            location={"city": location["city"], "country": location["country"], "latitude": location["latitude"], "longitude": location["longitude"]},
+        )
         print("Result:", result)
         print("-" * 40)
 
@@ -125,9 +129,13 @@ def run_maintenance_demo():
         print(f"Uploading {filename} to s3://{bucket}/{object_name}...")
         image_url = upload_file_to_s3(file_path, bucket, object_name)
         print(f"Uploaded URL: {image_url}")
-        # Run the inspector on the uploaded S3 URL for maintenance
+        # Run the vision agent on the uploaded S3 URL for maintenance
         print(f"User: {user['id']}, Location: {location['city']}, Image: {image_url}")
-        result = run_with_image_url(image_url, user, location)
+        result = analyze_vision_image(
+            image_url=image_url,
+            user={"id": user["id"], "name": user["name"]},
+            location={"city": location["city"], "country": location["country"], "latitude": location["latitude"], "longitude": location["longitude"]},
+        )
         print("Result:", result)
         print("-" * 40)
 

@@ -1,22 +1,15 @@
 #!/usr/bin/env python3
 """FastAPI server for City-Vision-Inspector."""
-from fastapi import FastAPI, Form, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Form, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 import os
-# Prepare context and invoke vision agent
 import asyncio
-from ai.openai.runner import run_with_image_url
-
-def _run_agent_sync(image_url, user, location_dict):
-    """Run the vision agent in a fresh event loop in this thread."""
-    return asyncio.run(run_with_image_url(image_url, user, location_dict))
-
 import json
+import uuid
 from pydantic import BaseModel
-from agents import Runner
-from ai.openai.def_agents import relevance_scorer
+from aiv2.agents.vision.vision_agent import analyze_vision_image
+from aiv2.agents.messages.agent import analyze_message
 from db.crud.read_nodes import search_node
-from db.crud.update_nodes import update_photo_relevance_score, delete_photo_and_event, export_high_score
 from db.neo4j import get_session
 
 app = FastAPI(
@@ -32,17 +25,16 @@ origins = [
     "https://localhost:3000",
     "http://localhost:3001",
     "https://localhost:3001",
+    "https://172.20.10.10:3000", # Cross origin request detected from 172.20.10.10 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this. Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
     # Allow requests from the deployed frontend (e.g., Vercel)
     "https://city-issues-platform.vercel.app",
 ]
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=origins,
-    allow_origins=["*"],        # Allow all origins
+    allow_origins=origins,      # Allow only the specified origins
     allow_credentials=True,  # This is already set correctly
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],  # Add this to expose all response headers
 )
 
 @app.post("/analyze", summary="Receive image URL, user, and location for analysis")
@@ -50,9 +42,8 @@ async def analyze(
     image_url: str = Form(...),
     user_id: str = Form(...),
     location: str = Form(...),
-    background_tasks: BackgroundTasks = None,
 ):
-    """Basic analyze endpoint accepting an image URL, user ID, and location info. Returns immediately and processes in background."""
+    """Analyze endpoint accepting an image URL, user ID, and location info. Returns the agent result."""
     print(f"Received image URL: {image_url}")
     print(f"User ID: {user_id}")
     # Parse and validate location JSON
@@ -73,7 +64,6 @@ async def analyze(
         raise HTTPException(status_code=400, detail="Invalid types for location fields")
     print(f"Location: latitude={latitude}, longitude={longitude}, city={city}, country={country}")
 
-    # Build user and location dicts for the agent
     user = {"id": user_id, "name": user_id}
     location_dict = {
         "latitude": latitude,
@@ -81,108 +71,36 @@ async def analyze(
         "city": city,
         "country": country,
     }
+    # Call the vision agent (sync wrapper for async if needed)
+    try:
+        result = await asyncio.to_thread(
+            analyze_vision_image,
+            image_url=image_url,
+            user=user,
+            location=location_dict,
+        )
+    except Exception as e:
+        print(f"Analysis error: {e}")
+        raise HTTPException(status_code=500, detail=f"Agent error: {e}")
+    return {"success": True, "result": result}
 
-    def run_agent_background(image_url, user, location_dict):
-        try:
-            print(f"[Background] Running city inspector agent on image URL: {image_url}")
-            print(f"[Background] User: {user}")
-            print(f"[Background] Location: {location_dict}")
-            _run_agent_sync(image_url, user, location_dict)
-        except Exception as e:
-            print(f"[Background] Analysis error: {e}")
+class RelevanceAnalyzeRequest(BaseModel):
+    image_url: str
+    description: str
+    current_score: float
+    node_details: dict
+    additional_info: str
 
-    # Schedule the background task
-    background_tasks.add_task(run_agent_background, image_url, user, location_dict)
-    return {"success": True, "message": "Image sent for processing"}
+@app.post("/relevance-analyze", summary="Analyze relevance and get delta_score using the agent")
+async def relevance_analyze(request: RelevanceAnalyzeRequest):
+    try:
+        # Convert request to dict and pass to analyze_message
+        result = await asyncio.to_thread(analyze_message, request.dict())
+    except Exception as e:
+        print(f"Relevance analysis error: {e}")
+        raise HTTPException(status_code=500, detail=f"Relevance agent error: {e}")
+    return result
 
 # To run the server:
 # pip install fastapi uvicorn python-multipart
 # uvicorn server:app --host 0.0.0.0 --port 8000 --reload
-'''
-Relevance adjustment endpoint:
-Accepts JSON body with photo_id, user_id, additional_info;
-retrieves linked Issue or Maintenance event for the photo,
-then invokes the relevance_scorer agent and returns the delta_score.
-'''
-
-class RelevanceRequest(BaseModel):
-    photo_id: str
-    user_id: str
-    additional_info: str
-
-@app.post("/relevance", summary="Adjust relevance score based on user feedback")
-def adjust_relevance(request: RelevanceRequest):
-    # Lookup photo node
-    photo = search_node("Photo", "photo_id", request.photo_id)
-    if not photo:
-        raise HTTPException(status_code=404, detail="Photo not found")
-    # Extract image URL and current relevance score (default to 0)
-    image_url = photo.get("url")
-    current_score = photo.get("relevance_score") or 0
-    # Find linked Issue event
-    session = get_session()
-    with session as s:
-        rec = s.run(
-            "MATCH (p:Photo {photo_id: $photo_id})-[:TRIGGERS_EVENT]->(e:Issue) RETURN e",  # issue link
-            photo_id=request.photo_id
-        ).single()
-    if rec:
-        event = rec["e"]
-        event_type = "issue"
-    else:
-        # Fallback: check Maintenance link
-        session2 = get_session()
-        with session2 as s2:
-            rec2 = s2.run(
-                "MATCH (p:Photo {photo_id: $photo_id})-[:CONTAINS]->(e:Maintenance) RETURN e",  # maintenance link
-                photo_id=request.photo_id
-            ).single()
-        if rec2:
-            event = rec2["e"]
-            event_type = "maintenance"
-        else:
-            raise HTTPException(status_code=404, detail="No linked Issue or Maintenance event for photo")
-    # Prepare agent input
-    description = event.get("description")
-    node_details = {"node_id": event.get("event_id"), "type": event_type}
-    params = {
-        "image_url": image_url,
-        "description": description,
-        "current_score": current_score,
-        "node_details": node_details,
-        "additional_info": request.additional_info,
-    }
-    # Invoke relevance agent
-    try:
-        input_text = json.dumps(params)
-        run_result = Runner.run_sync(relevance_scorer, input=input_text)
-        delta = None
-        # Extract final output from RunResult
-        if hasattr(run_result, 'final_output') and isinstance(run_result.final_output, dict):
-            delta = run_result.final_output.get('delta_score')
-        # Fallback: inspect run_result.new_items
-        if delta is None:
-            delta = 0
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Relevance agent error: {e}")
-    # Calculate the new relevance score
-    new_score = current_score + delta
-    # If score falls below 0, delete photo and linked event
-    if new_score < 0:
-        try:
-            delete_photo_and_event(request.photo_id)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error deleting photo and event: {e}")
-        return {"delta_score": delta, "deleted": True}
-    # Otherwise, update the photo's relevance_score
-    try:
-        update_photo_relevance_score(request.photo_id, new_score)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error updating relevance score: {e}")
-    # If the score exceeds 100, export image and event data to JSONL
-    if new_score > 100:
-        try:
-            export_high_score(request.photo_id)
-        except Exception:
-            pass
-    return {"delta_score": delta, "relevance_score": new_score}

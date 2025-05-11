@@ -4,7 +4,7 @@ City vision inspector agent definition.
 try:
     from agents import Agent, ModelSettings, RunContextWrapper
     from agents.tool import FunctionTool
-except ImportError:
+except Exception:
     # Fallback stubs for environments without the agents package
     class Agent:
         def __init__(self, *args, **kwargs):
