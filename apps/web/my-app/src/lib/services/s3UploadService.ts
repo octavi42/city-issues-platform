@@ -11,39 +11,45 @@ interface S3UploadResponse {
 }
 
 /**
- * Upload an image to S3 using a proxy API route
+ * Upload an image to S3 using a presigned URL
  */
 export async function uploadImageToS3(file: File): Promise<S3UploadResponse> {
   try {
-    // Create a FormData object to send the file
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    console.log('Uploading image to S3:', file.name, file.type, `${file.size / 1024} KB`);
-    
-    // Send to our proxy upload endpoint
-    const response = await fetch('/api/upload/s3', {
+    // Step 1: Get a presigned URL from the API
+    const fileType = file.type;
+    const fileExtension = file.name.split('.').pop();
+    const presignRes = await fetch('/api/upload/s3', {
       method: 'POST',
-      body: formData,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileType, fileExtension }),
     });
-    
-    // Check for errors
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`S3 upload failed: ${response.status} - ${errorText}`);
+    if (!presignRes.ok) {
+      const errorText = await presignRes.text();
+      throw new Error(`Failed to get S3 presigned URL: ${presignRes.status} - ${errorText}`);
     }
-    
-    // Parse response
-    const data = await response.json();
-    
-    if (!data.url) {
-      throw new Error('S3 upload successful but no URL was returned');
+    const { uploadUrl, fileUrl, key } = await presignRes.json();
+    if (!uploadUrl || !fileUrl) {
+      throw new Error('Presigned URL response missing uploadUrl or fileUrl');
     }
-    
+
+    // Step 2: Upload the file directly to S3
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': fileType,
+        'x-amz-acl': 'public-read',
+      },
+      body: file,
+    });
+    if (!uploadRes.ok) {
+      const errorText = await uploadRes.text();
+      throw new Error(`S3 upload failed: ${uploadRes.status} - ${errorText}`);
+    }
+
     return {
       success: true,
-      url: data.url,
-      key: data.key
+      url: fileUrl,
+      key: key
     };
   } catch (error) {
     console.error('Error uploading to S3:', error);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
 // Get S3 configuration from environment variables
@@ -24,55 +25,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse the form data
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-
-    if (!file) {
+    // Parse JSON body
+    const { fileType, fileExtension } = await request.json();
+    if (!fileType) {
       return NextResponse.json(
-        { success: false, error: 'No file provided' },
+        { success: false, error: 'Missing fileType in request body' },
         { status: 400 }
       );
     }
 
     // Generate a unique filename
-    const fileExtension = file.name.split('.').pop();
-    const uniqueFilename = `${uuidv4()}.${fileExtension}`;
-    
-    // Define the file path in the S3 bucket
+    const ext = fileExtension || fileType.split('/').pop();
+    const uniqueFilename = `${uuidv4()}.${ext}`;
     const key = `uploads/${uniqueFilename}`;
-    
-    // Convert file to buffer for S3 upload
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
-    // Upload to S3
+    // Create a presigned URL for PUT
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
-      Body: buffer,
-      ContentType: file.type,
-      ACL: 'public-read' // Make the file publicly accessible
+      ContentType: fileType,
+      ACL: 'public-read',
     });
-
-    await s3Client.send(command);
-
-    // Construct the URL of the uploaded file
-    const fileUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
-    
-    console.log('File uploaded successfully to:', fileUrl);
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 60 * 5 }); // 5 minutes
 
     return NextResponse.json({
       success: true,
-      url: fileUrl,
-      key: key
+      url: presignedUrl,
+      key,
+      uploadUrl: presignedUrl,
+      fileUrl: `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`
     });
   } catch (error) {
-    console.error('Error uploading to S3:', error);
+    console.error('Error generating S3 presigned URL:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'An unknown error occurred' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'An unknown error occurred'
       },
       { status: 500 }
     );
