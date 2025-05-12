@@ -17,11 +17,11 @@
    - Generate presigned URLs
  - **FastAPI Server**
    - `/analyze` endpoint for image analysis
+   - `/relevance-analyze` endpoint for relevance scoring against existing records
  - **CLI Utilities and Demos**
    - `utils/image_runner.py`: run agent on local image file
    - `utils/upload_s3.py`: upload file to S3
    - `utils/scripts.py`: demo database CRUD
-   - `tests/run_with_image_url_demo.py`: full workflow demo
 
  ## Architecture
 
@@ -29,7 +29,7 @@
  Client (HTTP or CLI)
      |
      v
- FastAPI Server (/analyze) or CLI
+ FastAPI Server (HTTP API: /analyze, /relevance-analyze) or CLI
      |
      v
  AWS S3 (Image Storage)
@@ -41,14 +41,16 @@
  Neo4j Database (Graph Storage)
  ```
 
- ## Installation
+## Installation
 
- 1. Clone the repository
+ 1. Clone the repository:
+    ```bash
+    git clone <repository_url>
+    cd city-vision-inspector
+    ```
  2. Install dependencies:
     ```bash
-    pip install fastapi uvicorn python-multipart boto3 neo4j
-    # If using the Agent framework:
-    pip install agents
+    pip install -r requirements.txt
     ```
 
  ## Configuration
@@ -71,7 +73,23 @@
  uvicorn server:app --host 0.0.0.0 --port 8000 --reload
  ```
 
- Access interactive API docs at `http://localhost:8000/docs`.
+Access interactive API docs at `http://localhost:8000/docs`.
+
+## Relevance Analysis Endpoint
+
+To evaluate the relevance of a new observation and obtain a delta score, send a POST request to `/relevance-analyze` with a JSON payload:
+
+```bash
+curl -X POST http://localhost:8000/relevance-analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_url": "https://example.com/image.jpg",
+    "description": "A brief description of the issue or element",
+    "current_score": 0.5,
+    "node_details": {"id":"node123","category":"pothole"},
+    "additional_info": "Optional additional context"
+  }'
+```
 
  ## CLI Usage
 
@@ -86,18 +104,6 @@
  - **Demo database CRUD**
    ```bash
    python utils/scripts.py
-   ```
-
- ## Testing
-
- - **Unit tests**
-   ```bash
-   python -m unittest discover tests -v
-   ```
- - **Integration tests** (requires live Neo4j and `NEO4J_INTEGRATION=true`)
-   ```bash
-   export NEO4J_INTEGRATION=true
-   python -m unittest tests/test_integration_database_crud.py -v
    ```
 
  ## Contributing
