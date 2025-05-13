@@ -7,11 +7,7 @@ A full-stack monorepo for detecting, analyzing, and visualizing city infrastruct
 2. [Application Overview](#application-overview)
 3. [Architecture](#architecture)
 4. [Directory Structure](#directory-structure)
-5. [Development](#development)
-   - [Using Docker](#using-docker)
-   - [Manual Setup](#manual-setup)
-6. [Testing](#testing)
-7. [Contributing](#contributing)
+5. [Manual Setup](#manual-setup)
  
 ## Getting Started
  
