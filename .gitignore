@@ -9,3 +9,5 @@ venv/
 # Misc
 .env*
 .DS_Store
+apps/api/.venv/
+.venv/
