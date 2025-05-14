@@ -107,3 +107,41 @@ def export_high_score(photo_id: str) -> dict:
         # Skip file write errors but proceed to return the record
         pass
     return record
+
+def get_photo_and_event(photo_id: str):
+    """
+    Fetch the photo node and its connected Issue or Maintenance node.
+    Returns a tuple: (photo_dict, event_dict, event_type) or (None, None, None) if not found.
+    """
+    session = get_session()
+    with session as s:
+        rec = s.run(
+            "MATCH (p:Photo {photo_id: $photo_id}) RETURN p",
+            photo_id=photo_id,
+        ).single()
+        if not rec:
+            return None, None, None
+        photo_node = rec["p"]
+        # Try linked Issue
+        rec2 = s.run(
+            "MATCH (p:Photo {photo_id: $photo_id})-[:TRIGGERS_EVENT]->(e:Issue) RETURN e",
+            photo_id=photo_id,
+        ).single()
+        if rec2:
+            event_node = rec2["e"]
+            event_type = "issue"
+        else:
+            # Fallback to Maintenance
+            rec3 = s.run(
+                "MATCH (p:Photo {photo_id: $photo_id})-[:CONTAINS]->(e:Maintenance) RETURN e",
+                photo_id=photo_id,
+            ).single()
+            if rec3:
+                event_node = rec3["e"]
+                event_type = "maintenance"
+            else:
+                return dict(photo_node), None, None
+    print(f"photo_node: {photo_node}")
+    print(f"event_node: {event_node}")
+    print(f"event_type: {event_type}")
+    return dict(photo_node), dict(event_node), event_type
