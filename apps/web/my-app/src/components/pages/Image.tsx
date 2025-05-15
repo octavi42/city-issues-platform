@@ -30,6 +30,9 @@ const Image = () => {
     const [commentSheetOpen, setCommentSheetOpen] = useState(false);
     const [newCommentText, setNewCommentText] = useState('');
     
+    // Add state for isReportMode
+    const [isReportMode, setIsReportMode] = useState(false);
+    
     // Get the ID from the URL params
     const urlId = typeof params.slug === 'string' ? params.slug : '';
     
@@ -194,6 +197,8 @@ const Image = () => {
                       commentText={newCommentText}
                       onCommentTextChange={handleCommentTextChange}
                       onSubmit={handleCommentSubmit}
+                      isReportMode={isReportMode}
+                      setIsReportMode={setIsReportMode}
                     />
                     </div>
     );

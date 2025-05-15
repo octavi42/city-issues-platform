@@ -66,3 +66,18 @@ export interface AnalyzedByRelationshipProps {
   confidence?: number;
   notes?: string;
 }
+
+/** Node entity: Message */
+export interface Message {
+  id: string;
+  reason: string;
+  photo_id: string;
+  user_id: string;
+  additional_info: string;
+  confidence: number;
+  created_at: string;
+  delta_score: number;
+  message_id: string;
+  text: string;
+  type: string;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Sheet } from "@silk-hq/components";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,8 @@ interface CommentSheetProps {
   commentText: string;
   onCommentTextChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onSubmit: () => void;
+  isReportMode: boolean;
+  setIsReportMode: (val: boolean) => void;
 }
 
 const CommentSheet = ({
@@ -20,9 +22,10 @@ const CommentSheet = ({
   commentText,
   onCommentTextChange,
   onSubmit,
+  isReportMode,
+  setIsReportMode
 }: CommentSheetProps) => {
   const [presentedState, setPresentedState] = React.useState(false);
-  const [isReportMode, setIsReportMode] = useState(false);
   
   // Sync the open state from props to the presented state
   useEffect(() => {

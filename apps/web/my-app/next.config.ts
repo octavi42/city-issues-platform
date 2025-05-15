@@ -11,7 +11,7 @@ const nextConfig = {
     NEO4J_PASSWORD: process.env.NEO4J_PASSWORD,
   },
   experimental: {
-    allowedDevOrigins: ['localhost', '192.168.1.248', '172.20.10.10', 'local-origin.dev'],
+    allowedDevOrigins: ['localhost', '192.168.1.248', '172.20.10.10', 'local-origin.dev', 'd5ab-82-77-154-148.ngrok-free.app/relevance-analyze', 'd5ab-82-77-154-148.ngrok-free.app'],
   },
 };
 

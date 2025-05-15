@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Calendar, MapPin, AlertTriangle } from "lucide-react";
-import { fetchDetectionEventById, fetchPhotoByEventId } from "@/lib/neo4j-queries";
-import { DetectionEvent } from "@/lib/neo4j-schema";
+import { fetchDetectionEventById, fetchPhotoByEventId, fetchMessagesByPhotoId } from "@/lib/neo4j-queries";
+import { DetectionEvent, Message } from "@/lib/neo4j-schema";
 import { format } from "date-fns";
 import Image from "next/image";
 import CommentSheet from "@/components/sheets/CommentSheet";
 import SheetOrBackButton from "./SheetOrBackButton";
+import { useVisitorId } from "@/app/hooks/useVisitorId";
 
 interface PhotoData {
   photo_id?: string;
@@ -39,24 +40,10 @@ interface IssueData {
   comments: Comment[];
 }
 
-// Sample comments to display when no comments are provided
-const sampleComments = [
-  {
-    user: "Sarah J.",
-    date: "Today",
-    text: "The broken bench poses a safety risk for the elderly."
-  },
-  {
-    user: "Michael C.",
-    date: "Yesterday",
-    text: "Parks department added this to their maintenance schedule."
-  },
-  {
-    user: "Emily R.",
-    date: "2d ago",
-    text: "Third damaged bench in this area. Maybe we need better lighting."
-  }
-];
+const VISION_API_URL: string =
+  typeof process !== 'undefined' && process.env.NEXT_PUBLIC_VISION_API_URL
+    ? process.env.NEXT_PUBLIC_VISION_API_URL
+    : '';
 
 const Issue = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
     const pathname = usePathname();
@@ -77,6 +64,9 @@ const Issue = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
       suggestions: [],
       comments: []
     });
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [isReportMode, setIsReportMode] = useState(false);
+    const visitorId = useVisitorId();
     
     // Extract event ID from the path
     const getEventIdFromPath = useCallback(() => {
@@ -94,7 +84,7 @@ const Issue = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
       };
     }, []);
     
-    // Fetch detection event data and associated photo
+    // Fetch detection event data, associated photo, and messages
     useEffect(() => {
       const fetchEventData = async () => {
         try {
@@ -115,6 +105,14 @@ const Issue = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
           const photo = await fetchPhotoByEventId(eventId);
           console.log("Fetched photo:", photo);
           setPhotoData(photo);
+          
+          // Fetch messages only if photo_id is available
+          if (photo && photo.photo_id) {
+            const msgs = await fetchMessagesByPhotoId(photo.photo_id);
+            setMessages(msgs);
+          } else {
+            setMessages([]);
+          }
           
           if (event) {
             setEventData(event);
@@ -172,28 +170,43 @@ const Issue = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
       }
     };
   
-    // Use provided comments or sample comments
-    const comments = issueData.comments?.length > 0 ? issueData.comments : sampleComments;
+    // Map messages to comments
+    const mappedComments = messages && messages.length > 0
+      ? messages.map((msg: Message) => ({
+          user: msg.user_id || "Unknown",
+          date: msg.created_at ? new Date(msg.created_at).toLocaleDateString() : "",
+          text: msg.text || ""
+        }))
+      : [];
+  
+    // Use mapped comments
+    const comments = mappedComments;
   
     // Handle comment submission
-    const handleCommentSubmit = () => {
-      if (!newCommentText.trim()) return;
-      
-      const newComment = {
-        user: "You",
-        date: "Just now",
-        text: newCommentText
-      };
-      
-      // Add the new comment to the list
-      setIssueData(prev => ({
-        ...prev,
-        comments: [...(prev.comments?.length ? prev.comments : []), newComment]
-      }));
-      
-      // Clear the input and close the sheet
-      setNewCommentText("");
-      setCommentSheetOpen(false);
+    const handleCommentSubmit = async () => {
+      if (!newCommentText.trim() || !photoData?.photo_id || !visitorId) return;
+      try {
+        const endpoint = VISION_API_URL
+          ? `${VISION_API_URL.replace(/\/$/, '')}/relevance-analyze`
+          : "/api/vision/relevance-analyze";
+        await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            photo_id: photoData.photo_id,
+            user_id: visitorId,
+            message: newCommentText,
+            submit_type: isReportMode ? "report" : "message"
+          })
+        });
+        // Refresh messages after submit
+        const msgs = await fetchMessagesByPhotoId(photoData.photo_id);
+        setMessages(msgs);
+        setNewCommentText("");
+        setCommentSheetOpen(false);
+      } catch (e) {
+        console.error("Failed to submit comment/report", e);
+      }
     };
 
     // Handle comment text change
@@ -386,24 +399,28 @@ const Issue = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
                     
                     {/* Comments list */}
                     <div className="space-y-5 mb-3">
-                      {comments.map((comment: Comment, i: number) => (
-                        <div key={i} className="p-1">
-                          <div className="bg-gray-50 rounded-xl p-2">
-                            <div className="flex items-center justify-between pb-3">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                  <div className="bg-blue-50 text-blue-700 w-full h-full flex items-center justify-center text-xs font-bold">
-                                    {comment.user?.charAt(0) || 'U'}
-                                  </div>
-                                </Avatar>
-                                <span className="text-sm font-medium">{comment.user}</span>
+                      {comments.length > 0 ? (
+                        comments.map((comment: Comment, i: number) => (
+                          <div key={i} className="p-1">
+                            <div className="bg-gray-50 rounded-xl p-2">
+                              <div className="flex items-center justify-between pb-3">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-8 w-8">
+                                    <div className="bg-blue-50 text-blue-700 w-full h-full flex items-center justify-center text-xs font-bold">
+                                      {comment.user?.charAt(0) || 'U'}
+                                    </div>
+                                  </Avatar>
+                                  <span className="text-sm font-medium">{comment.user}</span>
+                                </div>
+                                <span className="text-xs text-gray-500">{comment.date}</span>
                               </div>
-                              <span className="text-xs text-gray-500">{comment.date}</span>
+                              <p className="text-sm leading-relaxed text-gray-700">{comment.text}</p>
                             </div>
-                            <p className="text-sm leading-relaxed text-gray-700">{comment.text}</p>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <div className="text-gray-500 text-sm italic py-4">No comments yet.</div>
+                      )}
                     </div>
                     
                     {/* Add comment button */}
@@ -426,6 +443,8 @@ const Issue = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
               commentText={newCommentText}
               onCommentTextChange={handleCommentTextChange}
               onSubmit={handleCommentSubmit}
+              isReportMode={isReportMode}
+              setIsReportMode={setIsReportMode}
             />
         </div>
     );

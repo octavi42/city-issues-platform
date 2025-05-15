@@ -8,6 +8,7 @@ import {
   Category,
   Department,
   Solution,
+  Message,
 } from './neo4j-schema';
 
 // Define interfaces for types not in schema
@@ -356,4 +357,20 @@ export async function countCriticalProblems(): Promise<number> {
   const cypher = `MATCH (i:Issue) WHERE toLower(i.severity) = 'high' RETURN count(i) AS count`;
   const result = await runQuery<{ count: number }>(cypher);
   return result[0]?.count || 0;
+}
+
+/** Fetch all Message nodes */
+export async function fetchMessages(): Promise<Message[]> {
+  return getNodes<Message>('Message');
+}
+
+/** Fetch messages by photo_id */
+export async function fetchMessagesByPhotoId(photoId: string): Promise<Message[]> {
+  const cypher = `
+    MATCH (m:Message)
+    WHERE m.photo_id = $photoId
+    RETURN properties(m) AS node
+  `;
+  const results = await runQuery<{ node: Message }>(cypher, { photoId });
+  return results.map(r => r.node);
 }
