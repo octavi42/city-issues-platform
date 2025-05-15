@@ -4,12 +4,12 @@ Utility functions for interacting with the Neo4j database.
 from db.neo4j import get_session
 from db.crud.create_nodes import (
     add_node, add_city, add_detection_event, add_photo, add_analyzer,
-    add_category, add_department, add_solution, add_user
+    add_category, add_department, add_solution, add_user, add_message, add_report
 )
 from db.crud.create_edges import (
     add_relationship, add_uploaded_photo, add_captured_in, add_analyzed,
     add_triggers_event, add_in_category, add_handled_by,
-    add_operates_in, add_has_solution, add_proposed_by
+    add_operates_in, add_has_solution, add_proposed_by, add_message_for, add_report_for
 )
 from db.crud.read_nodes import read_nodes
 from db.crud.update_nodes import update_photo_relevance_score, delete_photo_and_event, export_high_score
@@ -17,10 +17,10 @@ from db.crud.update_nodes import update_photo_relevance_score, delete_photo_and_
 __all__ = [
     "get_session",
     "add_node", "add_city", "add_detection_event", "add_photo", "add_analyzer",
-    "add_category", "add_department", "add_solution", "add_user",
+    "add_category", "add_department", "add_solution", "add_user", "add_message", "add_report",
     "add_relationship", "add_uploaded_photo", "add_captured_in", "add_analyzed",
     "add_triggers_event", "add_in_category", "add_handled_by",
-    "add_operates_in", "add_has_solution", "add_proposed_by",
+    "add_operates_in", "add_has_solution", "add_proposed_by", "add_message_for", "add_report_for",
     "read_nodes",
     "update_photo_relevance_score",
     "delete_photo_and_event",

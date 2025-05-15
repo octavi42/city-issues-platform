@@ -13,6 +13,7 @@ from db.crud.read_nodes import search_node
 from db.neo4j import get_session
 from db.crud.update_nodes import get_photo_and_event
 from fastapi.responses import JSONResponse
+from db.crud import add_message, add_message_for
 
 app = FastAPI(
     title="City-Vision-Inspector API",
@@ -89,8 +90,10 @@ async def analyze(
 @app.post("/relevance-analyze", summary="Analyze relevance and get delta_score using the agent")
 async def relevance_analyze(
     photo_id: str,
+    user_id: str = Query(..., description="User ID submitting the message or report"),
     message: str = Query(..., description="User message/comment for the photo/event"),
-    submit_type: str = Query('message', regex="^(message|report)$", description="Type of submit: 'message' or 'report'")
+    submit_type: str = Query('message', regex="^(message|report)$", description="Type of submit: 'message' or 'report'"),
+    background_tasks: BackgroundTasks = None
 ):
     photo, event, event_type = get_photo_and_event(photo_id)
     if not photo:
@@ -98,7 +101,31 @@ async def relevance_analyze(
     if not event:
         raise HTTPException(status_code=404, detail="No connected Issue or Maintenance node found for this photo")
 
-    # Extract and format photo fields
+    # --- Create Message node and connect to Photo and User at the start ---
+    message_id = str(uuid.uuid4())
+    add_message({
+        "message_id": message_id,
+        "text": message,
+        "type": submit_type,
+        "user_id": user_id,
+        "photo_id": photo_id,
+        "created_at": photo.get("created_at"),
+    })
+    # Only create the relationship between message and photo
+    add_message_for({
+        "message_id": message_id,
+        "photo_id": photo_id,
+        # user_id is not needed for the edge
+    })
+
+    # Prepare the response to return immediately
+    response_data = {
+        "status": "created",
+        "message": "Message node created and being sent to AI for processing.",
+        "created_message": {"message_id": message_id, "type": submit_type},
+    }
+
+    # Prepare data for AI analysis
     location = photo.get("location")
     if location and hasattr(location, 'x') and hasattr(location, 'y'):
         location_dict = {"longitude": location.x, "latitude": location.y}
@@ -127,7 +154,6 @@ async def relevance_analyze(
         "inspected_at": event.get("inspected_at")
     }
 
-    # Compose additional_info
     additional_info_parts = [f"event_type: {event_type}"]
     if submit_type:
         additional_info_parts.append(f"submit_type: {submit_type}")
@@ -135,19 +161,41 @@ async def relevance_analyze(
         additional_info_parts.append(f"message: {message}")
     additional_info = "; ".join(additional_info_parts)
 
-    response = {
+    ai_payload = {
         "photo": photo_data,
         "event": event_data,
         "event_type": event_type,
-        "additional_info": additional_info
+        "additional_info": additional_info,
+        "message": message,
+        "submit_type": submit_type
     }
 
-    try:
-        result = await asyncio.to_thread(analyze_message, response)
-        return JSONResponse(content=result.model_dump(), media_type="application/json", status_code=200)
-    except Exception as e:
-        print(f"Relevance analysis error: {e}")
-        raise HTTPException(status_code=500, detail=f"Relevance agent error: {e}")
+    # Define the background task for AI analysis and updating the Message node
+    def process_ai_and_update():
+        try:
+            result = analyze_message(ai_payload)
+            result_dict = result.model_dump()
+            session = get_session()
+            with session as s:
+                update_fields = {
+                    "reason": result_dict.get("reason"),
+                    "delta_score": result_dict.get("delta_score"),
+                    "confidence": result_dict.get("confidence"),
+                    "additional_info": result_dict.get("additional_info"),
+                }
+                set_clause = ", ".join([f"m.{k} = ${k}" for k in update_fields])
+                params = {"message_id": message_id, **update_fields}
+                s.run(
+                    f"MATCH (m:Message {{message_id: $message_id}}) SET {set_clause}",
+                    **params
+                )
+        except Exception as e:
+            print(f"Background AI analysis error: {e}")
+
+
+    background_tasks.add_task(process_ai_and_update)
+
+    return JSONResponse(content=response_data, media_type="application/json", status_code=201)
 
 # To run the server:
 # pip install fastapi uvicorn python-multipart

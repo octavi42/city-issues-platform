@@ -171,6 +171,48 @@ def add_proposed_by(props: dict) -> dict:
         rel_props
     )
 
+def add_message_for(props: dict) -> dict:
+    """
+    Create relationships from a Message node to a Photo and a User.
+    Expects props: message_id, photo_id, user_id, and any additional properties for the relationship.
+    """
+    # Connect Message to Photo
+    rel1 = add_relationship(
+        "Message", "message_id", props["message_id"],
+        "ABOUT_PHOTO",
+        "Photo", "photo_id", props["photo_id"],
+        None
+    )
+    # Connect Message to User
+    rel2 = add_relationship(
+        "User", "user_id", props["user_id"],
+        "WROTE_MESSAGE",
+        "Message", "message_id", props["message_id"],
+        None
+    )
+    return {"about_photo": rel1, "wrote_message": rel2}
+
+def add_report_for(props: dict) -> dict:
+    """
+    Create relationships from a Report node to a Photo and a User.
+    Expects props: report_id, photo_id, user_id, and any additional properties for the relationship.
+    """
+    # Connect Report to Photo
+    rel1 = add_relationship(
+        "Report", "report_id", props["report_id"],
+        "REPORTS_PHOTO",
+        "Photo", "photo_id", props["photo_id"],
+        None
+    )
+    # Connect Report to User
+    rel2 = add_relationship(
+        "User", "user_id", props["user_id"],
+        "SUBMITTED_REPORT",
+        "Report", "report_id", props["report_id"],
+        None
+    )
+    return {"reports_photo": rel1, "submitted_report": rel2}
+
 _FUNCTIONS = {
     'uploaded_photo': add_uploaded_photo,
     'captured_in': add_captured_in,
@@ -181,6 +223,8 @@ _FUNCTIONS = {
     'operates_in': add_operates_in,
     'has_solution': add_has_solution,
     'proposed_by': add_proposed_by,
+    'message_for': add_message_for,
+    'report_for': add_report_for,
 }
 
 def load_props(arg: str) -> dict:

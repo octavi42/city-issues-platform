@@ -85,6 +85,20 @@ def add_solution(props: dict) -> dict:
 def add_user(props: dict) -> dict:
     return add_node("User", "user_id", props)
 
+def add_message(props: dict) -> dict:
+    """
+    Create or update a Message node with the given properties.
+    Uses 'message_id' as the unique identifier property.
+    """
+    return add_node("Message", "message_id", props)
+
+def add_report(props: dict) -> dict:
+    """
+    Create or update a Report node with the given properties.
+    Uses 'report_id' as the unique identifier property.
+    """
+    return add_node("Report", "report_id", props)
+
 _FUNCTIONS = {
     'city': add_city,
     'user': add_user,
