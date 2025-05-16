@@ -206,11 +206,11 @@ export default function Home() {
   }, [infoOpen]);
 
   const navigateToAccount = () => {
-    router.push('/me');
+    router.push('/me', { scroll: false });
   };
 
   const handlePhotoClick = (photoId: string) => {
-    router.push(`/image/${photoId}`);
+    router.push(`/image/${photoId}`, { scroll: false });
   };
 
   return (
@@ -316,7 +316,7 @@ export default function Home() {
                   return (
                     <div 
                       key={category.category_id} 
-                      onClick={() => router.push(`/categories/${slug}`)}
+                      onClick={() => router.push(`/categories/${slug}`, { scroll: false })}
                       className={`relative rounded-2xl border border-gray-100 overflow-hidden aspect-square cursor-pointer transition-transform duration-200 ease-out ${hoveredCard === category.category_id ? '-translate-y-1' : ''}`}
                       onMouseEnter={() => setHoveredCard(category.category_id)}
                       onMouseLeave={() => setHoveredCard(null)}
@@ -379,7 +379,7 @@ export default function Home() {
                     ))}
                     <div 
                       className="h-40 w-40 shrink-0 rounded-2xl bg-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors"
-                      onClick={() => router.push('/maintained')}
+                      onClick={() => router.push('/maintained', { scroll: false })}
                     >
                       <span className="text-gray-600 font-medium">View all</span>
                     </div>
@@ -428,7 +428,7 @@ export default function Home() {
                       <div
                         key={issue.event_id}
                         className={`flex flex-col gap-2 rounded-2xl bg-white border border-l border-t border-b border-gray-200 p-4 border-r-8 ${rightBorderColor} cursor-pointer transition-shadow hover:shadow-lg transition-transform duration-150 ease-out active:scale-95`}
-                        onClick={() => router.push(`/issue/${issue.event_id}`)}
+                        onClick={() => router.push(`/issue/${issue.event_id}`, { scroll: false })}
                         tabIndex={0}
                         role="button"
                         aria-label={`View details for ${issue.name || 'issue'}`}

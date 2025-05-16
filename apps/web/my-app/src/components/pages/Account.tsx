@@ -143,9 +143,9 @@ const Account = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
             return;
         }
         if (photo.type === 'issue' && photo.related_node_id) {
-            router.push(`/issue/${photo.related_node_id}`);
+            router.push(`/issue/${photo.related_node_id}`, { scroll: false });
         } else if (photo.type === 'maintenance') {
-            router.push(`/image/${photo.photo_id}`);
+            router.push(`/image/${photo.photo_id}`, { scroll: false });
         }
     };
 

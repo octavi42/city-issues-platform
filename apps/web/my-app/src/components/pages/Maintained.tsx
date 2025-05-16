@@ -298,7 +298,7 @@ const Maintained = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
                                     onClick={() => {
                                         // Use photo_id if available, otherwise use generated id
                                         const photoId = photosWithMaintained[imageData.id - 1]?.photo?.photo_id || `photo-${imageData.id}`;
-                                        router.push(`/image/${photoId}`);
+                                        router.push(`/image/${photoId}`, { scroll: false });
                                     }}
                                 >
                                     <div className={`relative w-full ${imageHeight}`}>
@@ -310,7 +310,7 @@ const Maintained = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
                                             onClick={() => {
                                                 // Use photo_id if available, otherwise use generated id
                                                 const photoId = photosWithMaintained[imageData.id - 1]?.photo?.photo_id || `photo-${imageData.id}`;
-                                                router.push(`/image/${photoId}`);
+                                                router.push(`/image/${photoId}`, { scroll: false });
                                             }}
                                         />
                                     </div>
@@ -340,7 +340,7 @@ const Maintained = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
                                     onClick={() => {
                                         // Use photo_id if available, otherwise use generated id
                                         const photoId = photosWithMaintained[imageData.id - 1]?.photo?.photo_id || `photo-${imageData.id}`;
-                                        router.push(`/image/${photoId}`);
+                                        router.push(`/image/${photoId}`, { scroll: false });
                                     }}
                                 >
                                     <div className={`relative w-full ${imageHeight}`}>
@@ -352,7 +352,7 @@ const Maintained = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
                                             onClick={() => {
                                                 // Use photo_id if available, otherwise use generated id
                                                 const photoId = photosWithMaintained[imageData.id - 1]?.photo?.photo_id || `photo-${imageData.id}`;
-                                                router.push(`/image/${photoId}`);
+                                                router.push(`/image/${photoId}`, { scroll: false });
                                             }}
                                         />
                                     </div>

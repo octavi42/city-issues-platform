@@ -8,7 +8,7 @@ const SheetOrBackButton = ({ isIntercepted, className = "", style, icon }: { isI
         if (typeof window !== "undefined" && window.history.length > 1) {
             router.back();
         } else {
-            router.push("/"); // fallback to home or another default route
+            router.push("/", { scroll: false }); // fallback to home or another default route
         }
         router.refresh()
     };

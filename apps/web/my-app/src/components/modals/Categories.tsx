@@ -133,7 +133,7 @@ const CategoriesSheetWrapper = () => {
                       key={category.category_id}
                       action="dismiss"
                       onClick={() => {
-                        router.push(`/categories/${category.category_id}`);
+                        router.push(`/categories/${category.category_id}`, { scroll: false });
                       }}
                     >
                     <div

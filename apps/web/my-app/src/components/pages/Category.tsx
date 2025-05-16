@@ -356,7 +356,7 @@ const Category = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
                                 onClick={() => {
                                     // Use eventId if available, otherwise use generated id
                                     const issueId = imageData.eventId || `issue-${imageData.id.toString()}`;
-                                    router.push(`/issue/${issueId}`);
+                                    router.push(`/issue/${issueId}`, { scroll: false });
                                 }}
                             >
                                 <div className="relative w-full h-40">
@@ -397,7 +397,7 @@ const Category = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
                                 onClick={() => {
                                     // Use eventId if available, otherwise use generated id
                                     const issueId = imageData.eventId || `issue-${imageData.id.toString()}`;
-                                    router.push(`/issue/${issueId}`);
+                                    router.push(`/issue/${issueId}`, { scroll: false });
                                 }}
                             >
                                 <div className="relative w-full h-40">
