@@ -10,6 +10,8 @@ import { useUserLocation } from '../hooks/useUserLocation';
 import { analyzeImage } from '@/lib/services/visionService';
 import { uploadImageToS3 } from '@/lib/services/s3UploadService';
 import { Camera } from "lucide-react";
+import { fetchUserById, createUserWithUsername } from '@/lib/neo4j-queries';
+import { generateUsername } from '@/lib/utils';
 
 // Helper function to convert data URL to File object
 function dataURLtoFile(dataUrl: string, filename: string): File {
@@ -339,6 +341,15 @@ const CustomDetachedSheet = () => {
 
     try {
       setIsUploading(true);
+      // Ensure user exists in DB before uploading image
+      const user = await fetchUserById(visitorId);
+      let username = '';
+      if (!user) {
+        // Try to get username from localStorage, else generate
+        username = localStorage.getItem('username') || generateUsername();
+        localStorage.setItem('username', username);
+        await createUserWithUsername(visitorId, username);
+      }
       // Convert data URL to File object
       const imageFile = dataURLtoFile(imageData, `photo-${Date.now()}.jpg`);
       // Get city and country info - in a real app, you might use a geocoding service

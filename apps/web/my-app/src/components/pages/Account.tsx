@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, CheckCircle, AlertCircle, Camera, RefreshCcw } from "lucide-react";
-import { fetchUserPhotos } from "@/lib/neo4j-queries";
+import { MapPin, CheckCircle, AlertCircle, Camera, RefreshCcw, Pencil, Check, X } from "lucide-react";
+import { fetchUserPhotos, fetchUserById, updateUserName } from "@/lib/neo4j-queries";
 import { useVisitorId } from "@/app/hooks/useVisitorId";
 import Image from "next/image";
 import React from "react";
 import SheetOrBackButton from "./SheetOrBackButton";
 import { Sheet } from "@silk-hq/components";
 import { SheetDismissButton } from "../examples/_GenericComponents/SheetDismissButton/SheetDismissButton";
+import { generateUsername } from "@/lib/utils";
 
 // Custom hook to handle location status with proper browser detection and error handling
 function useLocationStatus() {
@@ -104,6 +105,10 @@ const Account = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
     const [userPhotos, setUserPhotos] = useState<UserPhoto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [irrelevantSheetPhoto, setIrrelevantSheetPhoto] = useState<UserPhoto | null>(null);
+    const [user, setUser] = useState<{ name?: string; user_id: string; created_at?: string } | null>(null);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editedName, setEditedName] = useState("");
+    const [isSavingName, setIsSavingName] = useState(false);
     
     // Use our custom location hook instead of managing location state directly
     const location = useLocationStatus();
@@ -133,6 +138,28 @@ const Account = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
         loadUserPhotos();
     }, [visitorId, loadUserPhotos]);
 
+    // Fetch and set user object for display
+    useEffect(() => {
+        async function fetchAndSetUser() {
+            if (!visitorId || typeof visitorId !== 'string') return;
+            const dbUser = await fetchUserById(visitorId);
+            if (dbUser) {
+                setUser(dbUser);
+            } else {
+                // If no user found, use localStorage or generate a username
+                const username = localStorage.getItem('username') || generateUsername();
+                localStorage.setItem('username', username);
+                setUser({ user_id: visitorId, name: username });
+            }
+        }
+        fetchAndSetUser();
+    }, [visitorId]);
+
+    // When user changes, update editedName
+    useEffect(() => {
+        setEditedName(user?.name || "");
+    }, [user]);
+
     const handleVerify = () => {
         setIsVerified(true);
     };
@@ -149,6 +176,27 @@ const Account = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
         }
     };
 
+    // Handler for saving the edited name
+    const handleSaveName = async () => {
+        if (!user || !visitorId || !editedName.trim()) return;
+        setIsSavingName(true);
+        try {
+            await updateUserName(visitorId, editedName.trim());
+            setUser(prev => prev ? { ...prev, name: editedName.trim() } : prev);
+            setIsEditingName(false);
+        } finally {
+            setIsSavingName(false);
+        }
+    };
+
+    // Helper to format the member since date
+    function formatMemberSince(dateString?: string) {
+        if (!dateString) return null;
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return null;
+        return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+    }
+
     return (
         <div className="relative h-full overflow-auto px-6">
             <SheetOrBackButton
@@ -158,12 +206,62 @@ const Account = ({ isIntercepted = false }: { isIntercepted: boolean }) => {
             
             {/* Profile Section */}
             <div className="flex flex-col items-center mb-8 mt-8">
-                <div className="w-24 h-24 rounded-full bg-[#F7F7F7] flex items-center justify-center text-2xl font-bold text-[#333] mb-4">
-                    JD
+                <div className="w-24 h-24 rounded-full bg-[#F7F7F7] flex items-center justify-center text-2xl font-bold text-[#333] mb-4 relative">
+                    {/* Use initials from username if available, else fallback */}
+                    {user?.name ? user.name.split(/\s+/).map(word => word[0]).join('').slice(0,2).toUpperCase() : 'JD'}
+                    <button
+                        className="absolute top-1 right-1 bg-white rounded-full p-1 shadow hover:bg-gray-100 focus:outline-none"
+                        onClick={() => setIsEditingName(true)}
+                        aria-label="Edit profile name"
+                        tabIndex={0}
+                        type="button"
+                    >
+                        <Pencil size={18} className="text-gray-500" />
+                    </button>
                 </div>
-                
-                <h1 className="text-4xl font-bold leading-tight mb-2 text-center">John Doe</h1>
-                <p className="text-[0.9375rem] text-[#787575] mb-4 text-center">Member since May 2023</p>
+                <div className="flex items-center gap-2">
+                    {isEditingName ? (
+                        <>
+                            <input
+                                className="text-4xl font-bold leading-tight mb-2 text-center border-b border-gray-300 focus:outline-none focus:border-blue-400 bg-transparent px-2"
+                                value={editedName}
+                                onChange={e => setEditedName(e.target.value)}
+                                disabled={isSavingName}
+                                maxLength={32}
+                                style={{ width: Math.max(editedName.length, 8) + 'ch' }}
+                            />
+                            <button
+                                className="ml-2 text-green-600 font-semibold disabled:opacity-50"
+                                onClick={handleSaveName}
+                                disabled={isSavingName || !editedName.trim()}
+                                title="Save"
+                                type="button"
+                            >
+                                <Check size={28} />
+                            </button>
+                            <button
+                                className="ml-1 text-gray-500 font-semibold"
+                                onClick={() => { setIsEditingName(false); setEditedName(user?.name || ""); }}
+                                disabled={isSavingName}
+                                title="Cancel"
+                                type="button"
+                            >
+                                <X size={28} />
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <h1 className="text-4xl font-bold leading-tight mb-2 text-center">
+                                {user?.name || 'Loading...'}
+                            </h1>
+                        </>
+                    )}
+                </div>
+                {user?.created_at && formatMemberSince(user.created_at) && (
+                    <p className="text-[0.9375rem] text-[#787575] mb-4 text-center">
+                        Member since {formatMemberSince(user.created_at)}
+                    </p>
+                )}
                 
                 {!isVerified ? (
                     <button 

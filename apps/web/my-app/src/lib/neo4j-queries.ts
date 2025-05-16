@@ -1,6 +1,6 @@
 // Service functions to fetch Neo4j data using the generic Neo4j client utilities
 
-import { getNodes, getNodeByKey, runQuery } from './neo4j';
+import { getNodes, getNodeByKey, runQuery, createNode, updateNodeByKey } from './neo4j';
 import {
   User,
   Analyzer,
@@ -373,4 +373,19 @@ export async function fetchMessagesByPhotoId(photoId: string): Promise<Message[]
   `;
   const results = await runQuery<{ node: Message }>(cypher, { photoId });
   return results.map(r => r.node);
+}
+
+/**
+ * Creates a new User node with the given user_id, name (username), and created_at date.
+ */
+export async function createUserWithUsername(user_id: string, name: string) {
+  const created_at = new Date().toISOString();
+  return createNode('User', { user_id, name, created_at });
+}
+
+/**
+ * Updates the name (username) of a User node by user_id.
+ */
+export async function updateUserName(user_id: string, name: string) {
+  return updateNodeByKey('User', 'user_id', user_id, { name });
 }

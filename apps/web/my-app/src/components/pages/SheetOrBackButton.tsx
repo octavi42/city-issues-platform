@@ -5,12 +5,21 @@ import { Sheet } from "@silk-hq/components";
 const SheetOrBackButton = ({ isIntercepted, className = "", style, icon }: { isIntercepted: boolean, className?: string, style?: React.CSSProperties, icon?: React.ReactNode }) => {
     const router = useRouter();
     const handleBack = () => {
-        if (typeof window !== "undefined" && window.history.length > 1) {
-            router.back();
-        } else {
-            router.push("/", { scroll: false }); // fallback to home or another default route
+        if (typeof window !== "undefined") {
+            const currentPath = window.location.pathname;
+            const prevPath = document.referrer ? new URL(document.referrer).pathname : null;
+            if (prevPath === currentPath) {
+                router.push("/", { scroll: false });
+                router.refresh();
+                return;
+            }
+            if (window.history.length > 1) {
+                router.back();
+            } else {
+                router.push("/", { scroll: false }); // fallback to home or another default route
+            }
+            router.refresh();
         }
-        router.refresh()
     };
     const button = (
         <button
