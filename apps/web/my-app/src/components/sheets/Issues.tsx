@@ -18,8 +18,7 @@ export default function IssueSheetWrapper() {
 
   // Auto-present sheet on mount
   useEffect(() => {
-    const timer = setTimeout(() => setPresented(true), 50);
-    return () => clearTimeout(timer);
+    setPresented(true);
   }, []);
 
   // Handle closing: set state and navigate back
